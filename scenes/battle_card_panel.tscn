@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="src/UI/BattleCardPanel.cs" id="1_script"]
+
+[node name="BattleCardPanel" type="Control" script=ExtResource("1_script")]
+layout_mode = 3
+
+[node name="Content" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
