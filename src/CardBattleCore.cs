@@ -20,7 +20,7 @@ namespace Cthangover.CardBattle
     /// applying status effects each turn, and detecting win/loss conditions when all cards on one side are dead.
     /// Implements <see cref="IBattleCore"/> so it can be registered as a battle type provider in the core battle engine.
     /// </summary>
-    public class CardBattleCore : IBattleCore
+    public class CardBattleCore : IBattleCore, IBattleAutoPlayable
     {
         /// <summary>
         /// Unique identifier for this battle core, used by the battle engine to select the card battle mod.
@@ -45,6 +45,7 @@ namespace Cthangover.CardBattle
         private EndTurnButton _endTurnButton;
 
         private BattleSide _currentOrder;
+        private bool _playerTurnActive;
 
         private const float CELL_OFFSET = 10f;
         private const int PLAYER_CARD_LIMIT = 4;
@@ -191,6 +192,7 @@ namespace Cthangover.CardBattle
             GameLogger.Log("CARD_BATTLE", "Player turn started", LogLevel.Debug);
 
             _currentOrder = BattleSide.Player;
+            _playerTurnActive = true;
             BattleSceneContext.Instance.IsWait = false;
 
             _cardController.ClearSelections();
@@ -246,7 +248,8 @@ namespace Cthangover.CardBattle
         public async void OnPlayerTurnEnd()
         {
             GameLogger.Log("CARD_BATTLE", "Player turn ended", LogLevel.Debug);
-            
+
+            _playerTurnActive = false;
             _endTurnButton?.SetVisible(false);
             BattleSceneContext.Instance.IsWait = true;
 
@@ -386,5 +389,17 @@ namespace Cthangover.CardBattle
             _cardController?.ClearActions();
             _endTurnButton?.SetVisible(false);
         }
+
+        /// <summary>
+        /// <c>true</c> between <see cref="StartPlayerTurn"/> and the start of
+        /// <see cref="OnPlayerTurnEnd"/> — matches the visibility window of the
+        /// end-turn button, so automation presses exactly one turn per window.
+        /// </summary>
+        public bool IsWaitingForPlayerInput => _playerTurnActive;
+
+        /// <summary>
+        /// Automation hook: ends the player's turn without selecting cards.
+        /// </summary>
+        public void AdvancePlayerTurn() => OnPlayerTurnEnd();
     }
 }
