@@ -3,6 +3,7 @@ using Cthangover.Core.Mods;
 using Cthangover.Core.Mods.Resolvers;
 using Cthangover.Core.Characters;
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
@@ -79,6 +80,8 @@ namespace Cthangover.CardBattle.UI
 
         protected override void Construct()
         {
+            CthangoverTheme.Apply(this);
+
             teamOutline = GetNode<ColorRect>("TeamOutline");
             image = GetNode<TextureRect>("Image");
             frame = GetNode<TextureRect>("Frame");
@@ -92,7 +95,7 @@ namespace Cthangover.CardBattle.UI
             Size = CustomMinimumSize;
 
             defaultWidth = 230f;
-            selectionState = new Color(0, 0, 0, 0);
+            selectionState = UiTokens.Alpha(UiTokens.White, 0f);
 
             if (!selectTexLoaded)
             {
@@ -127,9 +130,9 @@ namespace Cthangover.CardBattle.UI
                 frame.Texture = characterCard.Image;
 
             if (selection != null)
-                selection.Modulate = new Color(0, 0, 0, 0);
+                selection.Modulate = UiTokens.Alpha(UiTokens.White, 0f);
 
-            selectionState = new Color(0, 0, 0, 0);
+            selectionState = UiTokens.Alpha(UiTokens.White, 0f);
 
             UpdateInfo();
         }
@@ -142,8 +145,8 @@ namespace Cthangover.CardBattle.UI
         {
             if (teamOutline != null)
                 teamOutline.Color = IsPlayer
-                    ? new Color(0.2f, 0.4f, 1f, 0.5f)
-                    : new Color(1f, 0.8f, 0.1f, 0.5f);
+                    ? UiTokens.Alpha(UiTokens.Info, 0.5f)
+                    : UiTokens.Alpha(UiTokens.Accent, 0.5f);
         }
 
         /// <summary>
@@ -159,15 +162,15 @@ namespace Cthangover.CardBattle.UI
         }
 
         /// <summary>
-        /// Applies a green selection highlight, raises Z-index to 4096 to ensure the card
+        /// Applies a target-accent selection highlight, raises Z-index to 4096 to ensure the card
         /// is clickable above other cards during drag-and-drop targeting, and animates
-        /// the selection overlay to green. Called when the player clicks a character card
+        /// the selection overlay to <see cref="UiTokens.TypeTarget"/>. Called when the player clicks a character card
         /// or when a valid support/self target is dragged over.
         /// </summary>
         public void Select()
         {
             _selected = true;
-            selectionState = new Color(0, 1, 0, 1);
+            selectionState = UiTokens.TypeTarget;
             AnimateSelection(selectionState);
             if (selection != null) selection.ZIndex = 1;
             ZIndex = 4096;
@@ -180,19 +183,19 @@ namespace Cthangover.CardBattle.UI
         public void Unselect()
         {
             _selected = false;
-            selectionState = new Color(0, 0, 0, 0);
+            selectionState = UiTokens.Alpha(UiTokens.White, 0f);
             AnimateSelection(selectionState);
             if (selection != null) selection.ZIndex = 0;
             ZIndex = _baseZIndex;
         }
 
         /// <summary>
-        /// Applies a red highlight indicating this card is being targeted for an attack.
+        /// Applies an enemy-accent highlight indicating this card is being targeted for an attack.
         /// Called by <see cref="ICardActionStrategy.HighlightTarget"/> during drag-over.
         /// </summary>
         public void Attack()
         {
-            selectionState = new Color(1, 0, 0, 1);
+            selectionState = UiTokens.TypeEnemy;
             AnimateSelection(selectionState);
             if (selection != null) selection.ZIndex = 1;
         }
@@ -204,7 +207,7 @@ namespace Cthangover.CardBattle.UI
         /// </summary>
         public void Invalid()
         {
-            selectionState = new Color(0.4f, 0.4f, 0.4f, 0.8f);
+            selectionState = UiTokens.Alpha(UiTokens.Muted, 0.8f);
             AnimateSelection(selectionState);
             if (selection != null) selection.ZIndex = 1;
         }

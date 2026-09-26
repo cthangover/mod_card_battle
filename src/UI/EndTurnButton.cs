@@ -1,4 +1,5 @@
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
@@ -20,7 +21,10 @@ namespace Cthangover.CardBattle.UI
 
         protected override void Construct()
         {
+            CthangoverTheme.Apply(this);
+
             _button = GetNode<Button>("BtnEndTurn");
+            CthangoverTheme.ApplyPrimary(_button);
 
             Size = CustomMinimumSize;
 

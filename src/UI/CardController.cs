@@ -5,6 +5,7 @@ using Cthangover.Core.Scenes;
 using Cthangover.Core.Utils;
 using Cthangover.Core.Characters;
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
@@ -151,7 +152,7 @@ namespace Cthangover.CardBattle.UI
                 if (!action.Type.UseInBattle())
                     continue;
                 var cardNode = CreateAction(action, cardScale);
-                cardNode.Modulate = new Color(1, 1, 1, 0);
+                cardNode.Modulate = UiTokens.Alpha(UiTokens.White, 0f);
                 cardNode.Position = originPos - cardNode.Size / 2;
                 actionCards.Add(cardNode);
 

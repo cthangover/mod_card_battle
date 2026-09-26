@@ -3,6 +3,7 @@ using System.Linq;
 using Cthangover.Core.Characters;
 using Cthangover.Core.Scenes;
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
@@ -49,6 +50,8 @@ namespace Cthangover.CardBattle.UI
 
         protected override void Construct()
         {
+            CthangoverTheme.Apply(this);
+
             content ??= GetNodeOrNull<Control>("Content");
         }
 

@@ -1,6 +1,7 @@
 using Cthangover.Core.Cards;
 using Cthangover.Core.Characters;
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
@@ -42,6 +43,8 @@ namespace Cthangover.CardBattle.UI
 
         protected override void Construct()
         {
+            CthangoverTheme.Apply(this);
+
             image = GetNode<TextureRect>("Image");
             frame = GetNode<TextureRect>("Frame");
             nameLabel = GetNode<Label>("NameLabel");
