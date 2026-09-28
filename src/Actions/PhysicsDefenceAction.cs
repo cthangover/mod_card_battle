@@ -1,5 +1,6 @@
 using Cthangover.Core.Battle;
 using Cthangover.Core.Battle.Actions;
+using Cthangover.Core.UI.Theming;
 using Cthangover.Core.Characters;
 using Cthangover.TurnBattle;
 using Cthangover.CardBattle.UI;
@@ -119,7 +120,15 @@ namespace Cthangover.CardBattle.Actions
                         Target.UpdateInfo();
 
                         if (result.Result && result.Target.Defence > 0)
+                        {
                             ShowDamageBehaviour.SpawnDefence(result.Target.Defence, TargetControl, TargetControl.GlobalPosition);
+                            Target.Flash(UiTokens.Info);
+                            BattleLogHub.Log(
+                                string.Format(Translate("battle/log_shield_gain"),
+                                    TranslationServer.Translate(Target.Card.Name).ToString(),
+                                    result.Target.Defence),
+                                UI.BattleLogKind.Buff);
+                        }
                     }
 
                     if (progress >= 1f)
@@ -212,5 +221,8 @@ namespace Cthangover.CardBattle.Actions
         {
             return t < 0.5f ? 2f * t * t : 1f - Mathf.Pow(-2f * t + 2f, 2f) / 2f;
         }
+
+        private static string Translate(string key)
+            => TranslationServer.Translate(key).ToString();
     }
 }

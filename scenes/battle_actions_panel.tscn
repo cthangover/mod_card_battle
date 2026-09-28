@@ -1,0 +1,152 @@
+﻿[gd_scene format=3]
+
+[ext_resource type="Script" path="src/UI/BattleActionsPanel.cs" id="1_script"]
+
+[node name="BattleActionsPanel" type="Control" script=ExtResource("1_script")]
+layout_mode = 3
+mouse_filter = 2
+
+[node name="Window" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Window"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="MarginContainer" parent="Window/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 11
+
+[node name="HeaderRow" type="HBoxContainer" parent="Window/Column/Header"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "battle/actions_title"
+uppercase = true
+
+[node name="SubjectLabel" type="Label" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 14
+text = "battle/no_character"
+
+[node name="Spacer" type="Control" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ApCaption" type="Label" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+text = "ui/character_panel/stat_ap"
+uppercase = true
+
+[node name="Pips" type="HBoxContainer" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="ApHint" type="Label" parent="Window/Column/Header/HeaderRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+
+[node name="Rule" type="HSeparator" parent="Window/Column"]
+layout_mode = 2
+
+[node name="Body" type="MarginContainer" parent="Window/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 0
+
+[node name="BodyColumn" type="VBoxContainer" parent="Window/Column/Body"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="EmptyLabel" type="Label" parent="Window/Column/Body/BodyColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+text = "battle/empty_actions"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Grid" type="GridContainer" parent="Window/Column/Body/BodyColumn"]
+layout_mode = 2
+mouse_filter = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="DescWrap" type="MarginContainer" parent="Window/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="DescWell" type="PanelContainer" parent="Window/Column/DescWrap"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="DescLabel" type="Label" parent="Window/Column/DescWrap/DescWell"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+
+[node name="FooterRule" type="HSeparator" parent="Window/Column"]
+layout_mode = 2
+
+[node name="Footer" type="MarginContainer" parent="Window/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 9
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 11
+
+[node name="FooterRow" type="HBoxContainer" parent="Window/Column/Footer"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HintLabel" type="Label" parent="Window/Column/Footer/FooterRow"]
+layout_mode = 2
+size_flags_vertical = 4
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "battle/action_hint"
+
+[node name="AutoEndLabel" type="Label" parent="Window/Column/Footer/FooterRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "battle/action_autoend"

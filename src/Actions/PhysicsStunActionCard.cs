@@ -1,3 +1,4 @@
+using Cthangover.Core.Cards.StatusEffect;
 using Cthangover.Core.Characters;
 
 namespace Cthangover.CardBattle.Actions
@@ -30,7 +31,7 @@ namespace Cthangover.CardBattle.Actions
             if (target.HasPassiveEffect("StunImmune"))
                 return new ChangedAttributes { Result = true };
 
-            target.StatusEffectQueue.Add("effect/physics/stun", actionCard.GetInt("Turn", 3));
+            StatusEffectService.Of(target).Add("effect/physics/stun", actionCard.GetInt("Turn", 3));
             
             return new ChangedAttributes { Result = true };
         }

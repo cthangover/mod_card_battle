@@ -1,3 +1,4 @@
+using Cthangover.Core.Cards.StatusEffect;
 using Cthangover.Core.Characters;
 using Godot;
 
@@ -34,8 +35,8 @@ namespace Cthangover.CardBattle.Actions
                 return new ChangedAttributes { Result = false };
 
             var damageDelta = Mathf.RoundToInt(actionCard.GetFloat("Attack", 1f) * user.Attributes.Attack.Value);
-            target.StatusEffectQueue.OnTakeDamage(user, ref damageDelta);
-            user.StatusEffectQueue.OnDealDamage(target, ref damageDelta);
+            StatusEffectService.Of(target).OnTakeDamage(user, ref damageDelta);
+            StatusEffectService.Of(user).OnDealDamage(target, ref damageDelta);
             
             var defenceDelta = 0;
             var ignoreArmor = user.HasPassiveEffect("IgnoreArmor");

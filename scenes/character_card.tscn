@@ -1,0 +1,226 @@
+﻿[gd_scene format=3]
+
+[ext_resource type="Script" path="src/UI/CharacterCardNode.cs" id="1_script"]
+
+[node name="CharacterCardNode" type="Control" script=ExtResource("1_script")]
+custom_minimum_size = Vector2(230, 420)
+layout_mode = 3
+
+[node name="Art" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 4
+
+[node name="TeamFrame" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Info" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -92.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Info"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="NameLabel" type="Label" parent="Info/Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+clip_text = true
+
+[node name="Stats" type="HBoxContainer" parent="Info/Column"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="HpChip" type="PanelContainer" parent="Info/Column/Stats"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Info/Column/Stats/HpChip"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Key" type="Label" parent="Info/Column/Stats/HpChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+text = "ui/character_panel/stat_hp"
+uppercase = true
+
+[node name="Value" type="Label" parent="Info/Column/Stats/HpChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+
+[node name="DefChip" type="PanelContainer" parent="Info/Column/Stats"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Info/Column/Stats/DefChip"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Key" type="Label" parent="Info/Column/Stats/DefChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+text = "ui/character_panel/stat_def"
+uppercase = true
+
+[node name="Value" type="Label" parent="Info/Column/Stats/DefChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+
+[node name="AtkChip" type="PanelContainer" parent="Info/Column/Stats"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Info/Column/Stats/AtkChip"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Key" type="Label" parent="Info/Column/Stats/AtkChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+text = "ui/character_panel/stat_atk"
+uppercase = true
+
+[node name="Value" type="Label" parent="Info/Column/Stats/AtkChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+
+[node name="ApChip" type="PanelContainer" parent="Info/Column/Stats"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Info/Column/Stats/ApChip"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Key" type="Label" parent="Info/Column/Stats/ApChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+text = "ui/character_panel/stat_ap"
+uppercase = true
+
+[node name="Value" type="Label" parent="Info/Column/Stats/ApChip/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 11
+
+[node name="HpBar" type="ProgressBar" parent="Info/Column"]
+custom_minimum_size = Vector2(0, 7)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+show_percentage = false
+
+[node name="Status" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -160.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 40.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="StunBadge" type="PanelContainer" parent="Status"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 8
+mouse_filter = 2
+
+[node name="Row" type="HBoxContainer" parent="Status/StunBadge"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="StunIcon" type="TextureRect" parent="Status/StunBadge/Row"]
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StunLabel" type="Label" parent="Status/StunBadge/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+uppercase = true
+
+[node name="Zap" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 20.0
+offset_right = -14.0
+offset_bottom = -70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Fx" type="Panel" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Selection" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 0

@@ -1,0 +1,83 @@
+﻿[gd_scene format=3]
+
+[ext_resource type="Script" path="src/UI/CardBattleScreen.cs" id="1_screen"]
+[ext_resource type="Script" path="src/UI/CardController.cs" id="2_controller"]
+[ext_resource type="PackedScene" path="scenes/battle_hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="scenes/battle_card_panel.tscn" id="4_panel"]
+[ext_resource type="PackedScene" path="scenes/battle_actions_panel.tscn" id="5_actions"]
+[ext_resource type="PackedScene" path="scenes/battle_log_panel.tscn" id="6_log"]
+[ext_resource type="PackedScene" path="scenes/battle_banner.tscn" id="7_banner"]
+[ext_resource type="PackedScene" path="scenes/end_turn_button.tscn" id="8_endturn"]
+
+[node name="CardBattleScreen" type="Control" script=ExtResource("1_screen")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Hud" parent="." instance=ExtResource("3_hud")]
+layout_mode = 1
+offset_left = 20.0
+offset_top = 26.0
+offset_right = 340.0
+offset_bottom = 114.0
+
+[node name="EnemyPanel" parent="." instance=ExtResource("4_panel")]
+layout_mode = 1
+anchor_left = 0.02
+anchor_top = 0.09375
+anchor_right = 0.98
+anchor_bottom = 0.53975
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PlayerPanel" parent="." instance=ExtResource("4_panel")]
+layout_mode = 1
+anchor_left = 0.01354
+anchor_top = 0.5498
+anchor_right = 0.56354
+anchor_bottom = 0.96
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ActionsPanel" parent="." instance=ExtResource("5_actions")]
+layout_mode = 1
+anchor_left = 0.5297
+anchor_top = 0.5498
+anchor_right = 0.9865
+anchor_bottom = 0.9521
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LogPanel" parent="." instance=ExtResource("6_log")]
+layout_mode = 1
+anchor_left = 0.2708
+anchor_top = 0.5566
+anchor_right = 0.5156
+anchor_bottom = 0.9629
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EndTurnButton" parent="." instance=ExtResource("8_endturn")]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -376.0
+offset_top = 20.0
+offset_right = -216.0
+offset_bottom = 70.0
+
+[node name="Banner" parent="." instance=ExtResource("7_banner")]
+layout_mode = 1
+anchor_top = 0.315
+anchor_right = 1.0
+anchor_bottom = 0.42
+grow_horizontal = 2
+
+[node name="CardController" type="Node" parent="." script=ExtResource("2_controller")]
+
+[node name="DragLayer" type="CanvasLayer" parent="."]
+layer = 100

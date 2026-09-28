@@ -1,182 +1,162 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Cthangover.Core.Cards;
 using Cthangover.Core.Audio;
 using Cthangover.Core.Scenes;
 using Cthangover.Core.Utils;
 using Cthangover.Core.Characters;
 using Cthangover.Core.UI;
+using Cthangover.Core.UI.CharacterPanel;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
-    /// Central input handler for the card battle UI. Processes mouse clicks and drags to implement
-    /// the full player interaction flow: click a character card to show its action cards in the
-    /// action panel, drag an action card onto a valid target (enemy for attacks, ally for support,
-    /// self for self-buffs), and execute the action on drop. Valid targets are determined by
-    /// <see cref="CardActionStrategyFactory.Get"/> dispatching the appropriate <see cref="ICardActionStrategy"/>.
-    /// Fires <see cref="OnActionExecuted"/> after each action, which <see cref="CardBattleCore"/>
-    /// uses to detect automatic turn end when all points are exhausted.
+    /// Central input handler for the card battle UI rebuilt from the mockup
+    /// (mockups/card_battle). Processes mouse clicks and drags: click a party
+    /// card to open its action deck in the "Действия" window, drag an action
+    /// card onto a valid target (enemy for attacks, ally for support, self for
+    /// self-buffs) and execute it on drop. Valid targets are decided by
+    /// <see cref="Player.CardActionStrategyFactory"/>; after every executed
+    /// action the controller fires <see cref="OnActionExecuted"/> so the core can
+    /// end the turn when all action points are spent.
+    /// <para/>
+    /// Actions are instantiated from <c>scenes/action_card.tscn</c> and parented
+    /// into the grid of <see cref="BattleActionsPanel"/>, which owns the empty
+    /// state, the point pips and the effect preview well; the controller only
+    /// feeds it. Hit-testing uses the card root rects exposed through
+    /// <see cref="ICard.GetControlNode"/>.
     /// </summary>
     public partial class CardController : InputHandlerNode
     {
-        private Control actionPanel;
-        private BattleCardPanel[] panels;
+        private CardBattleScreen _screen;
+        private BattleCardPanel[] _panels;
 
-        private List<CharacterCardNode> characterCards = new();
-        private List<ActionCardNode> actionCards = new();
+        private readonly List<CharacterCardNode> _characterCards = new();
+        private readonly List<ActionCardNode> _actionCards = new();
 
-        private CharacterCardNode selectedCharacter;
-        private CharacterCardNode targetCharacter;
-        private ActionCardNode currentActionCharacter;
+        private CharacterCardNode _selectedCharacter;
+        private CharacterCardNode _targetCharacter;
+        private ActionCardNode _currentActionCard;
 
-        private bool isDragging;
-        private bool dragValid;
-        private float dragThreshold = 15f;
-        private Vector2 pressPosition;
+        private bool _isDragging;
+        private bool _dragValid;
+        private const float DragThreshold = 15f;
+        private Vector2 _pressPosition;
         private Node _originalActionCardParent;
 
         /// <summary>
-        /// Locates the action panel and both battle card panels (<see cref="BattleCardPanel"/>) in the
-        /// scene tree relative to this node. Called once by <see cref="CardBattleCore.Init"/>
-        /// after the controller is added to the scene.
+        /// Uniform scale factor applied to all action cards created by this
+        /// controller. Set by the battle core from the viewport fitting
+        /// calculation.
         /// </summary>
-        public void FindPanels()
-        {
-            actionPanel = GetNodeOrNull<Control>("../ActionPanel");
-            panels = new[]
-            {
-                GetNodeOrNull<BattleCardPanel>("../PlayerPanel"),
-                GetNodeOrNull<BattleCardPanel>("../EnemyPanel"),
-            };
-        }
-
-        protected override void OnInput(InputEvent @event)
-        {
-            if (@event is InputEventMouseButton mb1 && mb1.Pressed && mb1.ButtonIndex == MouseButton.Left)
-                GameLogger.Log("CARD_CTRL", "_Input received mouse press", LogLevel.Debug);
-
-            if (Cthangover.Core.Battle.BattleSceneContext.Instance != null &&
-                (Cthangover.Core.Battle.BattleSceneContext.Instance.IsWait ||
-                 Cthangover.Core.Battle.BattleSceneContext.Instance.IsDestroyed))
-            {
-                if (@event is InputEventMouseButton mb2 && !mb2.Pressed)
-                    GameLogger.Log("CARD_CTRL",
-                        $"Input blocked: IsWait={Cthangover.Core.Battle.BattleSceneContext.Instance.IsWait} IsDestroyed={Cthangover.Core.Battle.BattleSceneContext.Instance.IsDestroyed}",
-                        LogLevel.Debug);
-                return;
-            }
-
-            if (@event is InputEventMouseButton mouseButton)
-            {
-                if (mouseButton.ButtonIndex == MouseButton.Left)
-                {
-                    if (mouseButton.Pressed)
-                    {
-                        pressPosition = mouseButton.GlobalPosition;
-                        isDragging = false;
-                        dragValid = false;
-                        OnBeginDrag(mouseButton.GlobalPosition);
-                    }
-                    else
-                    {
-                        if (isDragging && dragValid)
-                            OnEndDrag(mouseButton.GlobalPosition);
-                        else
-                            OnPointerClick(mouseButton.GlobalPosition);
-                        isDragging = false;
-                        dragValid = false;
-                    }
-                }
-            }
-
-            if (@event is InputEventMouseMotion mouseMotion)
-            {
-                if (mouseMotion.ButtonMask.HasFlag(MouseButtonMask.Left))
-                {
-                    if (dragValid && !isDragging && (mouseMotion.GlobalPosition - pressPosition).Length() > dragThreshold)
-                        isDragging = true;
-                    if (isDragging && dragValid)
-                        OnDrag(mouseMotion.GlobalPosition);
-                }
-            }
-        }
-
-        private float cardScale = 1f;
-
-        /// <summary>
-        /// Uniform scale factor applied to all action cards created by this controller.
-        /// Set by <see cref="CardBattleCore.Start"/> based on viewport fitting calculations.
-        /// </summary>
-        public float CardScale
-        {
-            get => cardScale;
-            set => cardScale = value;
-        }
+        public float CardScale { get; set; } = 1f;
 
         /// <summary>
         /// Fired after a successful drag-and-drop action execution. Subscribed by
-        /// <see cref="CardBattleCore.CheckPlayerTurnEnd"/> to auto-end the player's turn
-        /// when all action points are spent.
+        /// the battle core to auto-end the player's turn when all points are spent.
         /// </summary>
         public event System.Action OnActionExecuted;
 
         /// <summary>
-        /// Clears previous action cards and creates new <see cref="ActionCardNode"/> instances
-        /// for every action in <paramref name="character"/>'s deck. Action cards fade in and are
-        /// laid out horizontally in the action panel. Called when the player clicks a character card.
+        /// Binds the controller to the assembled battle screen: keeps the panels
+        /// for hit-testing and redraws and the actions panel for the deck grid and
+        /// the hover preview. Called once by the battle core right after the
+        /// screen is added to the battle scene.
+        /// </summary>
+        public void Setup(CardBattleScreen screen)
+        {
+            _screen = screen;
+            _panels = new[] { screen.PlayerPanel, screen.EnemyPanel };
+        }
+
+        protected override void OnInput(InputEvent @event)
+        {
+            if (Cthangover.Core.Battle.BattleSceneContext.Instance != null &&
+                (Cthangover.Core.Battle.BattleSceneContext.Instance.IsWait ||
+                 Cthangover.Core.Battle.BattleSceneContext.Instance.IsDestroyed))
+            {
+                return;
+            }
+
+            if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+            {
+                if (mouseButton.Pressed)
+                {
+                    _pressPosition = mouseButton.GlobalPosition;
+                    _isDragging = false;
+                    _dragValid = false;
+                    OnBeginDrag(mouseButton.GlobalPosition);
+                }
+                else
+                {
+                    if (_isDragging && _dragValid)
+                        OnEndDrag(mouseButton.GlobalPosition);
+                    else
+                        OnPointerClick(mouseButton.GlobalPosition);
+                    _isDragging = false;
+                    _dragValid = false;
+                }
+            }
+
+            if (@event is InputEventMouseMotion mouseMotion &&
+                mouseMotion.ButtonMask.HasFlag(MouseButtonMask.Left) &&
+                _dragValid)
+            {
+                if (!_isDragging && (mouseMotion.GlobalPosition - _pressPosition).Length() > DragThreshold)
+                    _isDragging = true;
+                if (_isDragging)
+                    OnDrag(mouseMotion.GlobalPosition);
+            }
+        }
+
+        /// <summary>
+        /// Clears previous action cards and fades in a fresh deck for
+        /// <paramref name="character"/>: one card per battle-usable action, dimmed
+        /// when the character cannot pay its cost. Called when a party card is
+        /// clicked.
         /// </summary>
         public void ShowActions(CharacterCardNode character)
         {
             if (character?.Card?.Actions == null)
             {
                 GameLogger.Log("CARD_CTRL",
-                    $"ShowActions: NULL actions for character {(character?.Card?.Name ?? "null")}",
+                    "ShowActions: NULL actions for character " + (character?.Card?.Name ?? "null"),
                     LogLevel.Error);
                 return;
             }
 
-            GameLogger.Log("CARD_CTRL",
-                $"ShowActions: {character.Card.Name} ({character.Card.Actions.Count} actions)",
-                LogLevel.Debug);
-
             DiscardActionCharacters();
 
-            var originPos = character.GlobalPosition * actionPanel.GetGlobalTransformWithCanvas().AffineInverse();
-            var count = character.Card.Actions.Count;
-
-            for (int i = 0; i < count; i++)
+            var points = character.Card.Attributes.Point.Value;
+            foreach (var action in character.Card.Actions)
             {
-                var action = character.Card.Actions[i];
                 if (!action.Type.UseInBattle())
                     continue;
-                var cardNode = CreateAction(action, cardScale);
-                cardNode.Modulate = UiTokens.Alpha(UiTokens.White, 0f);
-                cardNode.Position = originPos - cardNode.Size / 2;
-                actionCards.Add(cardNode);
 
-                var targetPos = new Vector2(cardNode.Size.X * i, 0);
+                var cardNode = CreateAction(action, CardScale);
+                cardNode.SetDisabled(points < ActionCharacterUi.CostOf(action));
+                cardNode.Modulate = UiTokens.Alpha(UiTokens.White, 0f);
+                cardNode.Hovered += OnActionCardHovered;
+                cardNode.Unhovered += OnActionCardUnhovered;
+                _actionCards.Add(cardNode);
 
                 var tween = CreateTween();
-                tween.SetParallel(true);
                 tween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-                tween.TweenProperty(cardNode, "modulate:a", 1f, 0.5f);
-                tween.TweenProperty(cardNode, "position", targetPos, 0.5f);
+                tween.TweenProperty(cardNode, "modulate:a", 1f, 0.25f);
             }
+
+            _screen.ActionsPanel.RefreshEmpty();
         }
 
-        /// <summary>
-        /// Animates existing action cards fading out and dropping down, then frees them.
-        /// Called before showing new action cards for a different character.
-        /// </summary>
+        /// <summary>Fades the current deck out and frees it.</summary>
         public void DiscardActionCharacters()
         {
-            if (actionCards.Count == 0)
+            if (_actionCards.Count == 0)
                 return;
 
-            var oldCards = new List<ActionCardNode>(actionCards);
-            actionCards.Clear();
+            var oldCards = new List<ActionCardNode>(_actionCards);
+            _actionCards.Clear();
 
             foreach (var card in oldCards)
             {
@@ -184,257 +164,232 @@ namespace Cthangover.CardBattle.UI
                     continue;
 
                 card.MouseFilter = Control.MouseFilterEnum.Ignore;
+                card.Hovered -= OnActionCardHovered;
+                card.Unhovered -= OnActionCardUnhovered;
+
                 var tween = CreateTween();
-                tween.SetParallel(true);
                 tween.SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Cubic);
                 tween.TweenProperty(card, "modulate:a", 0f, 0.15f);
-                tween.TweenProperty(card, "position:y", card.Position.Y + 40f, 0.15f);
-                tween.Chain().TweenCallback(Callable.From(card.QueueFree));
+                tween.TweenCallback(Callable.From(card.QueueFree));
             }
+
+            _screen.ActionsPanel.RefreshEmpty();
         }
 
         /// <summary>
-        /// Deselects the current action card, source character, and target character, clearing
-        /// their visual highlights and optionally discarding action cards. When
-        /// <paramref name="clearSource"/> is <c>true</c>, the action panel is also cleared. Triggers
-        /// a redraw of all battle panels to restore normal Z-ordering.
+        /// Drops the source and target highlights, optionally resets the actions
+        /// window back to its empty state and redraws the panels so the Z-order
+        /// returns to normal. Called after each executed action, on empty clicks
+        /// and when a drag is cancelled.
         /// </summary>
         public void ClearSelections(bool clearSource = true)
         {
-            if (currentActionCharacter != null)
+            if (_currentActionCard != null)
             {
-                currentActionCharacter.Unselect();
-                currentActionCharacter = null;
-            }
-            if (selectedCharacter != null && clearSource)
-            {
-                selectedCharacter.Unselect();
-                selectedCharacter = null;
-                DiscardActionCharacters();
-            }
-            if (targetCharacter != null)
-            {
-                targetCharacter.Unselect();
-                targetCharacter = null;
+                _currentActionCard.Unselect();
+                _currentActionCard = null;
             }
 
-            if (panels != null)
+            if (_selectedCharacter != null && clearSource)
             {
-                foreach (var panel in panels)
+                _selectedCharacter.Unselect();
+                _selectedCharacter = null;
+                DiscardActionCharacters();
+                _screen.ActionsPanel.ClearSubject();
+            }
+
+            ClearTargetMarkers();
+
+            if (_panels != null)
+            {
+                foreach (var panel in _panels)
                     panel?.Redraw();
             }
         }
 
         /// <summary>
-        /// Immediately frees all action card nodes without animation. Called at battle cleanup
-        /// by <see cref="CardBattleCore.OnBattleCleared"/>.
+        /// Removes the targeting frame from the current target and forgets it.
+        /// Every path that changes or abandons a target must go through here:
+        /// dragging over the gap between cards first nulls the target, and
+        /// without the explicit <see cref="CharacterCardNode.Unselect"/> the
+        /// discarded card would keep its red or grey marker forever.
         /// </summary>
+        private void ClearTargetMarkers()
+        {
+            if (_targetCharacter != null && GodotObject.IsInstanceValid(_targetCharacter))
+                _targetCharacter.Unselect();
+            _targetCharacter = null;
+        }
+
+        /// <summary>Immediately frees all action card nodes without animation (battle cleanup).</summary>
         public void ClearActions()
         {
-            if (actionCards.Count > 0)
-            {
-                foreach (var card in actionCards)
-                    card.QueueFree();
-                actionCards.Clear();
-            }
+            foreach (var card in _actionCards)
+                card.QueueFree();
+            _actionCards.Clear();
         }
 
         /// <summary>
-        /// Re-positions all action cards in a horizontal row within the action panel.
-        /// When <paramref name="animate"/> is <c>true</c>, cards tween smoothly to their targets.
-        /// </summary>
-        public void Redraw(bool animate = true)
-        {
-            var size = actionCards.Count;
-            for (int i = 0; i < size; i++)
-                SetActionCharacterPosition(actionCards[i], i, size, animate);
-        }
-
-        private void SetActionCharacterPosition(ActionCardNode card, int index, int count, bool animate)
-        {
-            var rect = card.GetControlNode();
-            var targetPos = new Vector2(rect.Size.X * index, 0);
-
-            if (animate)
-            {
-                var tween = CreateTween();
-                tween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
-                tween.TweenProperty(rect, "position", targetPos, 0.25f);
-            }
-            else
-            {
-                rect.Position = targetPos;
-            }
-        }
-
-        /// <summary>
-        /// Instantiates an <see cref="ActionCardNode"/>, adds it to the action panel, applies
-        /// the given <paramref name="cardScale"/>, and initializes it with <paramref name="actionCard"/> data.
-        /// Called by <see cref="ShowActions"/> for each action in a character's deck.
+        /// Instantiates an <see cref="ActionCardNode"/> inside the actions grid
+        /// and fills it from the action definition.
         /// </summary>
         public ActionCardNode CreateAction(ActionCharacter actionCard, float cardScale)
         {
-            var card = (ActionCardNode)TscnScenes.LoadAndBuild("scenes/action_card_node.tscn");
+            var card = (ActionCardNode)TscnScenes.LoadAndBuild("scenes/action_card.tscn");
             card.EnsureConstructed();
-            actionPanel.AddChild(card);
+            _screen.ActionsPanel.Body.AddChild(card);
             card.Scale = new Vector2(cardScale, cardScale);
             card.Init(actionCard);
             return card;
         }
 
         /// <summary>
-        /// Resolves the currently selected action against the selected target using the
-        /// appropriate <see cref="ICardActionStrategy"/>. Called by <see cref="OnEndDrag"/>
-        /// when a valid drop is confirmed.
+        /// Resolves the currently selected action against the selected target
+        /// through the matching <see cref="Player.ICardActionStrategy"/>.
+        /// Called by <see cref="OnEndDrag"/> when a valid drop is confirmed.
         /// </summary>
         public void DoActionToTarget()
         {
-            var strategy = Cthangover.CardBattle.Player.CardActionStrategyFactory.Get(
-                currentActionCharacter.Card, selectedCharacter, targetCharacter);
-            strategy?.Execute(selectedCharacter, targetCharacter, currentActionCharacter.Card);
+            var strategy = Player.CardActionStrategyFactory.Get(
+                _currentActionCard.Card, _selectedCharacter, _targetCharacter);
+            strategy?.Execute(_selectedCharacter, _targetCharacter, _currentActionCard.Card);
         }
+
+        private void OnActionCardHovered(ActionCardNode card)
+            => _screen.ActionsPanel.SetDescription(card.DescribeFrom(_selectedCharacter?.Card));
+
+        private void OnActionCardUnhovered(ActionCardNode card)
+            => _screen.ActionsPanel.SetDescriptionDefault();
 
         private void OnPointerClick(Vector2 screenPosition)
         {
-            characterCards = GetAllCharacters();
-            var source = TryFindCardByPosition(screenPosition, characterCards);
+            var source = TryFindCardByPosition(screenPosition, CollectCharacters());
 
-            if (source != null)
-                GameLogger.Log("CARD_CTRL",
-                    $"Click on card: {source.Card.Name} isPlayer={source.IsPlayer} actionsCount={source.Card.Actions?.Count ?? 0}",
-                    LogLevel.Debug);
-            else
-                GameLogger.Log("CARD_CTRL", "Click on empty space", LogLevel.Debug);
-
-            if (source != selectedCharacter && selectedCharacter != null)
-                selectedCharacter.Unselect();
-
-            if (source != null && source.IsPlayer)
-            {
-                var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
-                audioService?.PlaySound("battle/card_show_actions", Cthangover.Core.Audio.SoundType.CardEffect);
-                selectedCharacter = source;
-                ShowActions(selectedCharacter);
-                selectedCharacter.Select();
-            }
-            else
+            if (source == null || !source.IsPlayer || source.IsDead)
             {
                 ClearSelections();
+                return;
             }
+
+            if (source != _selectedCharacter && _selectedCharacter != null)
+                _selectedCharacter.Unselect();
+
+            var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
+            audioService?.PlaySound("battle/card_show_actions", SoundType.CardEffect);
+
+            _selectedCharacter = source;
+            _screen.ActionsPanel.SetSubject(TranslationServer.Translate(source.Card.Name).ToString());
+            _screen.ActionsPanel.SetPoints(source.Card.Attributes.Point.Value, source.Card.Attributes.Point.BaseValue);
+            ShowActions(_selectedCharacter);
+            _selectedCharacter.Select();
         }
 
         private void OnBeginDrag(Vector2 screenPosition)
         {
-            var source = TryFindCardByPosition(screenPosition, actionCards);
-            if (currentActionCharacter != null && source != currentActionCharacter)
-                currentActionCharacter.Unselect();
+            var source = TryFindCardByPosition(screenPosition, _actionCards);
 
-            if (source != null)
+            if (source == null)
+                return;
+
+            if (source.IsDisabled)
             {
-                dragValid = true;
-                var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
-                audioService?.PlaySound("battle/card_pick", 4, Cthangover.Core.Audio.SoundType.CardEffect);
+                BattleLogHub.Log(
+                    string.Format(Translate("battle/log_not_enough_points"), ActionCharacterUi.Translate(source.Card.Name)),
+                    BattleLogKind.Status);
+                return;
+            }
 
-                GameLogger.Log("CARD_CTRL",
-                    $"Begin drag: {source.Card.Name}",
-                    LogLevel.Debug);
+            if (_currentActionCard != null && source != _currentActionCard)
+                _currentActionCard.Unselect();
 
-                currentActionCharacter = source;
-                var control = currentActionCharacter.GetControlNode();
-                _originalActionCardParent = control.GetParent();
-                var globalPos = control.GlobalPosition;
-                control.Reparent(GetTree().Root);
-                control.GlobalPosition = globalPos;
-                control.ZIndex = 4096;
-                var pickTween = CreateTween();
-                pickTween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Back);
-                pickTween.TweenProperty(control, "scale", new Vector2(1.1f, 1.1f), 0.1f);
+            _dragValid = true;
+            var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
+            audioService?.PlaySound("battle/card_pick", 4, SoundType.CardEffect);
 
-                foreach (var card in actionCards)
-                {
-                    if (card != currentActionCharacter && GodotObject.IsInstanceValid(card))
-                        card.MouseFilter = Control.MouseFilterEnum.Ignore;
-                }
+            _currentActionCard = source;
+            var control = _currentActionCard.GetControlNode();
+            _originalActionCardParent = control.GetParent();
+            var globalPos = control.GlobalPosition;
+            // Отдельный CanvasLayer поверх всего боя: иначе карта рисуется
+            // под ветками панелей врагов и союзников.
+            control.Reparent(_screen.DragLayer);
+            control.GlobalPosition = globalPos;
+
+            var pickTween = CreateTween();
+            pickTween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Back);
+            pickTween.TweenProperty(control, "scale", new Vector2(1.1f, 1.1f), 0.1f);
+
+            foreach (var card in _actionCards)
+            {
+                if (card != _currentActionCard && GodotObject.IsInstanceValid(card))
+                    card.MouseFilter = Control.MouseFilterEnum.Ignore;
             }
         }
 
         private void OnDrag(Vector2 screenPosition)
         {
-            if (currentActionCharacter == null)
+            if (_currentActionCard == null)
                 return;
 
-            var cardControl = currentActionCharacter.GetControlNode();
+            var cardControl = _currentActionCard.GetControlNode();
             cardControl.GlobalPosition = screenPosition - cardControl.Size / 2;
 
-            var target = TryFindCardByRect(cardControl, characterCards);
+            var target = TryFindCardByRect(cardControl, _characterCards);
+            if (target == _targetCharacter)
+                return;
 
-            if (target != targetCharacter && targetCharacter != null)
-                targetCharacter.Unselect();
+            ClearTargetMarkers();
 
-            if (target != null)
+            if (target == null)
             {
-                targetCharacter = target;
-                var strategy = Cthangover.CardBattle.Player.CardActionStrategyFactory.Get(
-                    currentActionCharacter.Card, selectedCharacter, target);
+                _currentActionCard.Unselect();
+                return;
+            }
 
-                var valid = strategy != null && strategy.Check(currentActionCharacter.Card, selectedCharacter, target);
+            _targetCharacter = target;
+            var strategy = Player.CardActionStrategyFactory.Get(
+                _currentActionCard.Card, _selectedCharacter, target);
 
-                GameLogger.Log("CARD_CTRL",
-                    $"Drag over: {target.Card.Name} valid={valid}",
-                    LogLevel.Debug);
-
-                if (valid)
-                {
-                    strategy.HighlightTarget(currentActionCharacter, targetCharacter);
-                }
-                else
-                {
-                    targetCharacter.Invalid();
-                    currentActionCharacter.Invalid();
-                }
+            if (strategy != null && strategy.Check(_currentActionCard.Card, _selectedCharacter, target))
+            {
+                strategy.HighlightTarget(_currentActionCard, _targetCharacter);
             }
             else
             {
-                targetCharacter = null;
-                currentActionCharacter.Unselect();
+                _targetCharacter.Invalid();
+                _currentActionCard.Invalid();
             }
         }
 
         private void OnEndDrag(Vector2 screenPosition)
         {
-            foreach (var card in actionCards)
+            foreach (var card in _actionCards)
             {
                 if (card != null && GodotObject.IsInstanceValid(card))
                     card.MouseFilter = Control.MouseFilterEnum.Stop;
             }
 
-            if (selectedCharacter != null && currentActionCharacter != null && targetCharacter != null)
+            if (_selectedCharacter != null && _currentActionCard != null && _targetCharacter != null)
             {
-                var strategy = Cthangover.CardBattle.Player.CardActionStrategyFactory.Get(
-                    currentActionCharacter.Card, selectedCharacter, targetCharacter);
+                var strategy = Player.CardActionStrategyFactory.Get(
+                    _currentActionCard.Card, _selectedCharacter, _targetCharacter);
 
-                var valid = strategy != null && strategy.Check(currentActionCharacter.Card, selectedCharacter, targetCharacter);
-
-                GameLogger.Log("CARD_CTRL",
-                    $"End drag: {currentActionCharacter.Card.Name} from {selectedCharacter.Card.Name} to {targetCharacter.Card.Name} valid={valid}",
-                    LogLevel.Debug);
-
-                if (valid)
+                if (strategy != null && strategy.Check(_currentActionCard.Card, _selectedCharacter, _targetCharacter))
                 {
                     if (_originalActionCardParent != null)
                     {
-                        currentActionCharacter.GetControlNode().Reparent(_originalActionCardParent);
+                        _currentActionCard.GetControlNode().Reparent(_originalActionCardParent);
                         _originalActionCardParent = null;
                     }
 
                     var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
-                    audioService?.PlaySound("battle/card_drop", 4, Cthangover.Core.Audio.SoundType.CardEffect);
+                    audioService?.PlaySound("battle/card_drop", 4, SoundType.CardEffect);
 
                     DoActionToTarget();
 
-                    if (panels != null)
+                    if (_panels != null)
                     {
-                        foreach (var panel in panels)
+                        foreach (var panel in _panels)
                             panel?.Redraw();
                     }
 
@@ -444,9 +399,9 @@ namespace Cthangover.CardBattle.UI
                 }
             }
 
-            if (currentActionCharacter != null)
+            if (_currentActionCard != null)
             {
-                var control = currentActionCharacter.GetControlNode();
+                var control = _currentActionCard.GetControlNode();
                 if (_originalActionCardParent != null)
                 {
                     control.Reparent(_originalActionCardParent);
@@ -455,57 +410,56 @@ namespace Cthangover.CardBattle.UI
                 var resetTween = CreateTween();
                 resetTween.SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Cubic);
                 resetTween.TweenProperty(control, "scale", Vector2.One, 0.15f);
-                control.ZIndex = 0;
+
+                BattleLogHub.Log(
+                    string.Format(Translate("battle/log_invalid_target"), ActionCharacterUi.Translate(_currentActionCard.Card.Name)),
+                    BattleLogKind.Status);
             }
 
-            Redraw();
             ClearSelections(false);
         }
 
-        private T TryFindCardByPosition<T>(Vector2 screenPosition, IList<T> cards, ICard exclude = null) where T : class, ICard
+        private T TryFindCardByPosition<T>(Vector2 screenPosition, IList<T> cards) where T : class, ICard
         {
-            if (cards == null)
-                return null;
             foreach (var card in cards)
             {
-                if (card == exclude || card == null)
+                if (card == null || !GodotObject.IsInstanceValid(card.GetControlNode()))
                     continue;
-                if (card.Frame != null && card.Frame.GetGlobalRect().HasPoint(screenPosition))
+                var rect = card.GetControlNode();
+                if (rect.GetGlobalRect().HasPoint(screenPosition))
                     return card;
             }
             return null;
         }
 
-        private T TryFindCardByRect<T>(Control draggingRect, IList<T> cards, ICard exclude = null) where T : class, ICard
+        private T TryFindCardByRect<T>(Control draggingRect, IList<T> cards) where T : class, ICard
         {
-            Vector2 screenPoint = draggingRect.GlobalPosition + draggingRect.Size / 2;
+            var screenPoint = draggingRect.GlobalPosition + draggingRect.Size / 2;
             foreach (var card in cards)
             {
-                if (card == exclude || card == null)
+                if (card == null || !GodotObject.IsInstanceValid(card.GetControlNode()))
                     continue;
-                if (card.Frame != null && card.Frame.GetGlobalRect().HasPoint(screenPoint))
+                var rect = card.GetControlNode();
+                if (rect.GetGlobalRect().HasPoint(screenPoint))
                     return card;
             }
             return null;
         }
 
-        private List<CharacterCardNode> GetAllCharacters()
+        private List<CharacterCardNode> CollectCharacters()
         {
-            var list = new List<CharacterCardNode>();
-            var root = GetParent();
-            if (root != null)
-                CollectNodes<CharacterCardNode>(root, list);
-            return list;
+            _characterCards.Clear();
+            foreach (var panel in _panels)
+            {
+                if (panel == null)
+                    continue;
+                foreach (var card in panel.CardList)
+                    _characterCards.Add(card);
+            }
+            return _characterCards;
         }
 
-        private static void CollectNodes<T>(Node parent, List<T> results) where T : Node
-        {
-            foreach (Node child in parent.GetChildren())
-            {
-                if (child is T t)
-                    results.Add(t);
-                CollectNodes(child, results);
-            }
-        }
+        private static string Translate(string key)
+            => TranslationServer.Translate(key).ToString();
     }
 }

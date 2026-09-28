@@ -2,23 +2,15 @@
 
 namespace Cthangover.CardBattle
 {
-
     /// <summary>
-    /// Common interface for all card UI nodes in the card battle system.
-    /// Exposes the <c>Frame</c> and <c>Image</c> <see cref="TextureRect"/> controls so that
-    /// <see cref="CardController"/> can perform hit-testing during drag-and-drop targeting
-    /// without knowing the concrete card type (<see cref="CharacterCardNode"/> or <see cref="ActionCardNode"/>).
+    /// Common contract for every card the input controller can hit-test. Both
+    /// the character cards on the field and the draggable action cards expose
+    /// their root <see cref="Control"/>, because layout, scale and the drag
+    /// ghost all operate on the whole card rect rather than on an inner sprite.
     /// </summary>
     public interface ICard
     {
-        /// <summary>
-        /// The frame <see cref="TextureRect"/> used for hit-testing whether a pointer is over this card.
-        /// </summary>
-        TextureRect Frame { get; }
-        /// <summary>
-        /// The portrait/image <see cref="TextureRect"/> of the card, used for dissolve shader effects on death.
-        /// </summary>
-        TextureRect Image { get; }
+        /// <summary>Root control used for hit-testing and for reparenting during a drag.</summary>
+        Control GetControlNode();
     }
-
 }

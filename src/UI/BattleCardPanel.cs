@@ -84,7 +84,7 @@ namespace Cthangover.CardBattle.UI
         /// </summary>
         public CharacterCardNode Create(Character card, bool isPlayer, float cardScale)
         {
-            var behaviour = (CharacterCardNode)TscnScenes.LoadAndBuild("scenes/character_card_node.tscn");
+            var behaviour = (CharacterCardNode)TscnScenes.LoadAndBuild("scenes/character_card.tscn");
             behaviour.EnsureConstructed();
 
             if (content != null)

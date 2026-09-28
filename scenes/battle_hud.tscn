@@ -1,0 +1,76 @@
+﻿[gd_scene format=3]
+
+[ext_resource type="Script" path="src/UI/BattleHud.cs" id="1_script"]
+
+[node name="BattleHud" type="Control" script=ExtResource("1_script")]
+custom_minimum_size = Vector2(320, 88)
+layout_mode = 3
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 9
+
+[node name="TitleRow" type="HBoxContainer" parent="Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Panel/Column/TitleRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "battle/hud_title"
+uppercase = true
+
+[node name="PhaseBadge" type="PanelContainer" parent="Panel/Column/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="PhaseLabel" type="Label" parent="Panel/Column/TitleRow/PhaseBadge"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 10
+text = "battle/turn_player"
+uppercase = true
+
+[node name="MetaRow" type="HBoxContainer" parent="Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="RoundCaption" type="Label" parent="Panel/Column/MetaRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "battle/round"
+
+[node name="RoundValue" type="Label" parent="Panel/Column/MetaRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "1"
+
+[node name="EnemiesCaption" type="Label" parent="Panel/Column/MetaRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "battle/enemies_alive"
+
+[node name="EnemiesValue" type="Label" parent="Panel/Column/MetaRow"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 12
+text = "0"

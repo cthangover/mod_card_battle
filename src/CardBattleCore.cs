@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cthangover.Core.Battle;
 using Cthangover.Core.Battle.Actions;
+using Cthangover.Core.Cards.StatusEffect;
 using Cthangover.Core.Scenes;
+using Cthangover.Core.UI.CharacterPanel;
 using Cthangover.Core.Utils;
 using Cthangover.Core.Characters;
 using Cthangover.CardBattle.Player;
@@ -14,49 +16,58 @@ using Godot;
 namespace Cthangover.CardBattle
 {
     /// <summary>
-    /// Core orchestrator for the card-based turn battle system.
-    /// Manages the full battle lifecycle: initializing UI panels (<see cref="BattleCardPanel"/> and <see cref="CardController"/>),
-    /// cycling between player and enemy turns, spawning animated actions via <see cref="AbstractBattleAction"/>,
-    /// applying status effects each turn, and detecting win/loss conditions when all cards on one side are dead.
-    /// Implements <see cref="IBattleCore"/> so it can be registered as a battle type provider in the core battle engine.
+    /// Core orchestrator for the card-based turn battle system. Owns the full
+    /// battle lifecycle: it instantiates the UI screen rebuilt from the mockup
+    /// (mockups/card_battle, defined in <c>scenes/card_battle_screen.tscn</c>),
+    /// cycles between player and enemy turns, drives the animated enemy actions
+    /// through <see cref="AbstractBattleAction"/>, applies status effects each
+    /// turn and detects win/loss when one side loses all cards.
+    /// <para/>
+    /// The core talks to the screen through its assembled widgets
+    /// (<see cref="CardBattleScreen.Hud"/>, <see cref="BattleLogPanel"/>,
+    /// <see cref="BattleBanner"/>, panels) instead of walking the scene tree, and
+    /// publishes journal rows via <see cref="BattleLogHub"/> so other battle code
+    /// can log without a UI reference. Implements <see cref="IBattleCore"/> so the
+    /// battle engine can select this mod as the active battle type.
     /// </summary>
     public class CardBattleCore : IBattleCore, IBattleAutoPlayable
     {
-        /// <summary>
-        /// Unique identifier for this battle core, used by the battle engine to select the card battle mod.
-        /// </summary>
-        public string Id => "card_battle";
-
-        /// <summary>
-        /// Provides <see cref="IActionExecutor"/> instances for the three card action types
-        /// (physics/attack, physics/defence, physics/stun) used during action resolution.
-        /// </summary>
-        public IActionExecutorProvider ActionProvider { get; } = new Actions.CardBattleActionProvider();
+        private const int PlayerCardLimit = 4;
+        private const float BaseCardWidth = 230f;
+        private const float BaseCardHeight = 420f;
+        private const float CellOffset = 10f;
 
         private Character[] _playerChars;
         private Character[] _enemyChars;
         private IBattleContext _ctx;
 
+        private CardBattleScreen _screen;
         private BattleCardPanel _playerPanel;
         private BattleCardPanel _enemyPanel;
         private CardController _cardController;
-        private Control _actionPanel;
-        private Control _toolPanel;
         private EndTurnButton _endTurnButton;
 
         private BattleSide _currentOrder;
         private bool _playerTurnActive;
+        private int _round;
 
-        private const float CELL_OFFSET = 10f;
-        private const int PLAYER_CARD_LIMIT = 4;
-        private const float BASE_CARD_WIDTH = 230f;
-        private const float BASE_CARD_HEIGHT = 420f;
+        /// <summary>Unique identifier for this battle core, used by the battle engine to select the card battle mod.</summary>
+        public string Id => "card_battle";
 
         /// <summary>
-        /// Initializes the card battle by constructing the player and enemy <see cref="BattleCardPanel"/> instances,
-        /// the <see cref="CardController"/> for drag-and-drop input, and the <see cref="EndTurnButton"/>.
-        /// Enemy characters are deep-copied so defeats are tracked independently per battle instance.
-        /// The <see cref="CardBattleActionProvider"/> is registered with <see cref="ActionExecutorHub"/>.
+        /// Provides <see cref="IActionExecutor"/> instances for the three card
+        /// action types (physics/attack, physics/defence, physics/stun) used
+        /// during action resolution.
+        /// </summary>
+        public IActionExecutorProvider ActionProvider { get; } = new Actions.CardBattleActionProvider();
+
+        /// <summary>
+        /// Instantiates the battle screen from <c>scenes/card_battle_screen.tscn</c>,
+        /// attaches it to the battle scene's <c>Panel</c> and binds the panels,
+        /// end-turn button and input controller. Enemy characters are deep-copied
+        /// so defeats are tracked independently per battle instance. The
+        /// <see cref="CardBattleActionProvider"/> is registered with
+        /// <see cref="ActionExecutorHub"/>.
         /// </summary>
         public void Init(Character[] playerChars, Character[] enemyChars, IBattleContext ctx)
         {
@@ -64,70 +75,41 @@ namespace Cthangover.CardBattle
             _ctx = ctx;
 
             _enemyChars = new Character[enemyChars.Length];
-            for (int i = 0; i < enemyChars.Length; i++)
+            for (var i = 0; i < enemyChars.Length; i++)
                 _enemyChars[i] = enemyChars[i]?.Copy() ?? enemyChars[i];
 
             ActionExecutorHub.Instance.SetActiveProvider(ActionProvider);
 
             var root = ctx.RootNode as Node;
-
             var panel = root.GetNodeOrNull<Control>("Panel") ?? root;
 
-            _playerPanel = (BattleCardPanel)TscnScenes.LoadAndBuild("scenes/battle_card_panel.tscn");
-            _playerPanel.Name = "PlayerPanel";
-            _playerPanel.EnsureConstructed();
-            panel.AddChild(_playerPanel);
+            _screen = (CardBattleScreen)TscnScenes.LoadAndBuild("scenes/card_battle_screen.tscn");
+            _screen.Name = "CardBattleScreen";
+            _screen.EnsureConstructed();
+            panel.AddChild(_screen);
 
-            _enemyPanel = (BattleCardPanel)TscnScenes.LoadAndBuild("scenes/battle_card_panel.tscn");
-            _enemyPanel.Name = "EnemyPanel";
-            _enemyPanel.AlignType = "Right";
-            _enemyPanel.EnsureConstructed();
-            _enemyPanel.MouseFilter = Control.MouseFilterEnum.Ignore;
-            panel.AddChild(_enemyPanel);
+            _playerPanel = _screen.PlayerPanel;
+            _enemyPanel = _screen.EnemyPanel;
 
-            _actionPanel = new Control { Name = "ActionPanel" };
-            panel.AddChild(_actionPanel);
-
-            _toolPanel = root.GetNodeOrNull<Control>("ToolPanel");
-
-            _endTurnButton = (EndTurnButton)TscnScenes.LoadAndBuild("scenes/end_turn_button.tscn");
-            _endTurnButton.Name = "EndTurnButton";
-            _endTurnButton.EnsureConstructed();
+            _endTurnButton = _screen.EndTurnButton;
             _endTurnButton.SetVisible(false);
             _endTurnButton.OnPressed += OnEndTurnPressed;
-            _toolPanel?.AddChild(_endTurnButton);
 
-            _cardController = new CardController { Name = "CardController" };
-            panel.AddChild(_cardController);
-            _cardController.FindPanels();
+            _cardController = _screen.Controller;
+            _cardController.Setup(_screen);
         }
 
         /// <summary>
-        /// Positions the UI panels relative to the viewport, calculates a unified <c>cardScale</c> that
-        /// fits both player and enemy cards on screen, initializes all character cards, and starts the first player turn.
-        /// Subscribes to <c>OnCardDead</c> to record defeated enemies and to <c>OnActionExecuted</c> to detect
-        /// automatic turn completion when all player cards exhaust their action points.
+        /// Calculates the pointer scale fitting both sides on screen, initializes
+        /// every card and starts the first player turn. Subscribes to
+        /// <c>OnCardDead</c> to record defeated enemies for the victory screen and
+        /// to <c>OnActionExecuted</c> to detect automatic turn completion.
         /// </summary>
         public void Start()
         {
-            var root = _ctx.RootNode as Node;
-
-            var panelSize = root.GetViewport().GetVisibleRect().Size;
             var enemyCount = _enemyChars?.Length ?? 1;
 
             _enemyPanel.UseRows = enemyCount > 6;
-
-            _playerPanel.Position = new Vector2(0, panelSize.Y * 0.55f);
-            _playerPanel.Size = new Vector2(panelSize.X * 0.55f, panelSize.Y * 0.35f);
-
-            _enemyPanel.Position = new Vector2(panelSize.X * 0.02f, panelSize.Y * 0.022f);
-            _enemyPanel.Size = new Vector2(panelSize.X * 0.96f, panelSize.Y * 0.446f);
-
-            _actionPanel.Position = new Vector2(panelSize.X * 0.53f, panelSize.Y * 0.55f);
-            _actionPanel.Size = new Vector2(panelSize.X * 0.46f, panelSize.Y * 0.35f);
-
-            if (_endTurnButton != null)
-                _endTurnButton.Position = new Vector2(panelSize.X - 180f, (panelSize.Y * 0.1f - 50f) / 2);
 
             var cardScale = CalculateCardScale(enemyCount);
             _cardController.CardScale = cardScale;
@@ -140,6 +122,7 @@ namespace Cthangover.CardBattle
 
             BattleSceneContext.Instance.OnBattleCleared += OnBattleCleared;
 
+            _round = 0;
             _currentOrder = BattleSide.Player;
             StartPlayerTurn();
         }
@@ -147,31 +130,31 @@ namespace Cthangover.CardBattle
         private float CalculateCardScale(int enemyCount)
         {
             var viewport = ((Node)_ctx.RootNode).GetViewport().GetVisibleRect().Size;
-            float enemyPanelWidth = viewport.X * 0.96f;
-            float playerPanelWidth = viewport.X * 0.55f;
-            float enemyPanelHeight = viewport.Y * 0.446f;
+            var enemyPanelWidth = viewport.X * 0.96f;
+            var playerPanelWidth = viewport.X * 0.55f;
+            var enemyPanelHeight = viewport.Y * 0.446f;
 
-            float maxCardScale = 1f;
-
+            float maxCardScale;
             if (_enemyPanel.UseRows)
             {
-                int maxPerRow = _enemyPanel.GetMaxCardsPerRow();
-                int rows = _enemyPanel.GetCurrentRowCount(enemyCount);
+                var maxPerRow = _enemyPanel.GetMaxCardsPerRow();
+                var rows = _enemyPanel.GetCurrentRowCount(enemyCount);
 
-                float widthScale = (enemyPanelWidth - (maxPerRow - 1) * CELL_OFFSET) / (maxPerRow * BASE_CARD_WIDTH);
-                float heightScale = (enemyPanelHeight - (rows - 1) * CELL_OFFSET) / (rows * BASE_CARD_HEIGHT);
+                var widthScale = (enemyPanelWidth - (maxPerRow - 1) * CellOffset) / (maxPerRow * BaseCardWidth);
+                var heightScale = (enemyPanelHeight - (rows - 1) * CellOffset) / (rows * BaseCardHeight);
                 maxCardScale = Mathf.Max(0.1f, Mathf.Min(widthScale, heightScale));
             }
             else
             {
-                int effectiveCount = Mathf.Max(enemyCount, 1);
-                maxCardScale = Mathf.Max(0.1f, (enemyPanelWidth - (effectiveCount - 1) * CELL_OFFSET) / (effectiveCount * BASE_CARD_WIDTH));
+                var effectiveCount = Mathf.Max(enemyCount, 1);
+                maxCardScale = Mathf.Max(0.1f,
+                    (enemyPanelWidth - (effectiveCount - 1) * CellOffset) / (effectiveCount * BaseCardWidth));
             }
 
-            float playerFitScale = Mathf.Max(0.1f, (playerPanelWidth - (PLAYER_CARD_LIMIT - 1) * CELL_OFFSET) / (PLAYER_CARD_LIMIT * BASE_CARD_WIDTH));
+            var playerFitScale = Mathf.Max(0.1f,
+                (playerPanelWidth - (PlayerCardLimit - 1) * CellOffset) / (PlayerCardLimit * BaseCardWidth));
 
-            float cardScale = Mathf.Min(maxCardScale, playerFitScale);
-            return Mathf.Min(cardScale, 1f);
+            return Mathf.Min(Mathf.Min(maxCardScale, playerFitScale), 1f);
         }
 
         private void OnEnemyCardDead(CharacterCardNode card)
@@ -185,34 +168,43 @@ namespace Cthangover.CardBattle
                 ctx.RecordEnemyDefeated(card.Card);
                 ctx.NotifyCharacterDied(card.Card);
             }
+
+            _screen.Hud.SetEnemiesAlive(CountAlive(_enemyPanel));
+            BattleLogHub.Log(string.Format(Translate("battle/log_dead"), card.Card.Name), BattleLogKind.Dead);
         }
 
         private void StartPlayerTurn()
         {
-            GameLogger.Log("CARD_BATTLE", "Player turn started", LogLevel.Debug);
-
+            _round += 1;
             _currentOrder = BattleSide.Player;
             _playerTurnActive = true;
             BattleSceneContext.Instance.IsWait = false;
 
             _cardController.ClearSelections();
             _cardController.ClearActions();
+            _screen.ActionsPanel.ClearBody();
+            _screen.ActionsPanel.ClearSubject();
 
             _endTurnButton?.SetVisible(true);
 
             foreach (var card in _playerPanel.CardList)
             {
-                card.Card.StatusEffectQueue.OnTurnStart();
+                StatusEffectService.Of(card.Card).OnTurnStart();
                 card.Card.Attributes.Point.Value = card.Card.Attributes.Point.BaseValue;
                 card.UpdateInfo();
             }
+
+            _screen.Hud.SetTurn(true);
+            _screen.Hud.SetRound(_round);
+            _screen.Hud.SetEnemiesAlive(CountAlive(_enemyPanel));
+            _screen.LogPanel.SetRound(_round);
+            _screen.Banner.Show(Translate("battle/turn_player"));
+            BattleLogHub.Log(
+                Translate("battle/log_turn_player") + " · " + string.Format(Translate("battle/log_round"), _round),
+                BattleLogKind.Turn);
         }
 
-        private void OnEndTurnPressed()
-        {
-            GameLogger.Log("CARD_BATTLE", "End turn button pressed", LogLevel.Debug);
-            OnPlayerTurnEnd();
-        }
+        private void OnEndTurnPressed() => OnPlayerTurnEnd();
 
         private void CheckPlayerTurnEnd()
         {
@@ -225,30 +217,24 @@ namespace Cthangover.CardBattle
                 return;
             }
 
-            bool allOutOfPoints = true;
             foreach (var card in _playerPanel.CardList)
             {
                 if (!card.IsDead && card.Card?.Attributes?.Point?.Value > 0)
-                {
-                    allOutOfPoints = false;
-                    break;
-                }
+                    return;
             }
 
-            if (allOutOfPoints)
-                OnPlayerTurnEnd();
+            BattleLogHub.Log(Translate("battle/log_out_of_points"), BattleLogKind.Info);
+            OnPlayerTurnEnd();
         }
 
         /// <summary>
-        /// Ends the player's turn by hiding the end-turn button, setting the battle to <c>IsWait</c>,
-        /// and yielding two frames for UI to settle before running the enemy AI turn via <c>RunEnemyTurn</c>.
-        /// If all enemies are already dead, the battle ends immediately with the player as winner.
-        /// This method is <c>async void</c> so it can await frames without blocking the game loop.
+        /// Ends the player's turn: hides the end-turn button, pauses the battle,
+        /// plays the enemy-turn banner and journal line, waits for two frames plus
+        /// a short pause so the UI settles, then runs the enemy AI. Ends the battle
+        /// immediately when no enemies remain.
         /// </summary>
         public async void OnPlayerTurnEnd()
         {
-            GameLogger.Log("CARD_BATTLE", "Player turn ended", LogLevel.Debug);
-
             _playerTurnActive = false;
             _endTurnButton?.SetVisible(false);
             BattleSceneContext.Instance.IsWait = true;
@@ -259,6 +245,10 @@ namespace Cthangover.CardBattle
                 return;
             }
 
+            _screen.Hud.SetTurn(false);
+            _screen.Banner.Show(Translate("battle/turn_enemy"));
+            BattleLogHub.Log(Translate("battle/log_turn_enemy"), BattleLogKind.Turn);
+
             var root = (Node)_ctx.RootNode;
             await root.ToSignal(root.GetTree(), "process_frame");
             await root.ToSignal(root.GetTree().CreateTimer(0.5f), "timeout");
@@ -268,8 +258,6 @@ namespace Cthangover.CardBattle
 
         private async Task RunEnemyTurn()
         {
-            GameLogger.Log("CARD_BATTLE", "Enemy turn started", LogLevel.Debug);
-
             _currentOrder = BattleSide.Enemy;
             _endTurnButton?.SetVisible(false);
 
@@ -280,11 +268,15 @@ namespace Cthangover.CardBattle
                 if (card.IsDead || card.Card?.Actions == null || card.Card.Actions.Count == 0)
                     continue;
 
-                card.Card.StatusEffectQueue.OnTurnStart();
+                StatusEffectService.Of(card.Card).OnTurnStart();
 
-                if (card.Card.StatusEffectQueue.HasStun())
+                if (StatusEffectService.Of(card.Card).HasStun())
                 {
-                    GameLogger.Log("CARD_BATTLE", $"{card.Card.Name} is stunned, skipping", LogLevel.Debug);
+                    card.UpdateInfo();
+                    card.PlayZap();
+                    BattleLogHub.Log(
+                        string.Format(Translate("battle/log_stun_skip"), card.Card.Name),
+                        BattleLogKind.Status);
                     continue;
                 }
 
@@ -298,9 +290,17 @@ namespace Cthangover.CardBattle
                 if (target == null)
                     continue;
 
-                GameLogger.Log("CARD_BATTLE",
-                    $"Enemy action: {card.Card.Name} -> {action.Name} -> {target.Card.Name}",
-                    LogLevel.Message);
+                card.UpdateInfo();
+
+                if (action.Type == ActionCharacterType.ToEnemy)
+                {
+                    BattleLogHub.Log(
+                        string.Format(Translate("battle/log_enemy_action"),
+                            card.Card.Name,
+                            ActionCharacterUi.Translate(action.Name),
+                            target.Card.Name),
+                        BattleLogKind.Info);
+                }
 
                 var animatedAction = CreateAnimatedAction(card, target, action);
                 if (animatedAction != null)
@@ -315,7 +315,6 @@ namespace Cthangover.CardBattle
 
                 if (!HasAliveCards(_playerPanel))
                 {
-                    GameLogger.Log("CARD_BATTLE", "All players dead — enemy wins", LogLevel.Message);
                     _ctx.EndBattle(BattleSide.Enemy);
                     return;
                 }
@@ -336,8 +335,7 @@ namespace Cthangover.CardBattle
             if (actions == null || actions.Count == 0)
                 return null;
 
-            var random = new Random();
-            return actions[random.Next(actions.Count)];
+            return actions[GD.RandRange(0, actions.Count - 1)];
         }
 
         private CharacterCardNode PickEnemyTarget(CharacterCardNode source, ActionCharacter action)
@@ -350,7 +348,7 @@ namespace Cthangover.CardBattle
 
                 if (alivePlayers.Count == 0)
                     return null;
-                return alivePlayers[new Random().Next(alivePlayers.Count)];
+                return alivePlayers[GD.RandRange(0, alivePlayers.Count - 1)];
             }
 
             if (action.Type == ActionCharacterType.ToAlias || action.Type == ActionCharacterType.ToSelf)
@@ -360,7 +358,8 @@ namespace Cthangover.CardBattle
             return null;
         }
 
-        private Actions.AbstractBattleAction CreateAnimatedAction(CharacterCardNode source, CharacterCardNode target, ActionCharacter action)
+        private Actions.AbstractBattleAction CreateAnimatedAction(
+            CharacterCardNode source, CharacterCardNode target, ActionCharacter action)
         {
             if (action.Type == ActionCharacterType.ToEnemy)
                 return new Actions.PhysicsAttackAction(source, target, action);
@@ -372,7 +371,7 @@ namespace Cthangover.CardBattle
             return null;
         }
 
-        private bool HasAliveCards(BattleCardPanel panel)
+        private static bool HasAliveCards(BattleCardPanel panel)
         {
             foreach (var card in panel.CardList)
             {
@@ -382,13 +381,24 @@ namespace Cthangover.CardBattle
             return false;
         }
 
+        private static int CountAlive(BattleCardPanel panel)
+        {
+            var alive = 0;
+            foreach (var card in panel.CardList)
+            {
+                if (!card.IsDead && card.Card?.Attributes?.Health?.Value > 0)
+                    alive++;
+            }
+            return alive;
+        }
+
         private void OnBattleCleared()
         {
-            _playerPanel?.ClearAll();
-            _enemyPanel?.ClearAll();
-            _cardController?.ClearActions();
-            _endTurnButton?.SetVisible(false);
+            _screen?.Clear();
         }
+
+        private static string Translate(string key)
+            => TranslationServer.Translate(key).ToString();
 
         /// <summary>
         /// <c>true</c> between <see cref="StartPlayerTurn"/> and the start of
@@ -397,9 +407,7 @@ namespace Cthangover.CardBattle
         /// </summary>
         public bool IsWaitingForPlayerInput => _playerTurnActive;
 
-        /// <summary>
-        /// Automation hook: ends the player's turn without selecting cards.
-        /// </summary>
+        /// <summary>Automation hook: ends the player's turn without selecting cards.</summary>
         public void AdvancePlayerTurn() => OnPlayerTurnEnd();
     }
 }

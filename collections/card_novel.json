@@ -1,0 +1,39 @@
+{
+  "id": "card_novel",
+  "name": "Card Novel",
+  "author": "ct",
+  "version": "1.0.0",
+  "description": "A visual novel with turn-based battles resolved as a card game: story core, battle engine, card layer and the novel interface.",
+  "mechanics": [
+    {
+      "id": "vn_core",
+      "name": "Novel Core",
+      "description": "Scenes, scenarios, dialogue and the story engine.",
+      "mods": ["visual_novel_core>=1"]
+    },
+    {
+      "id": "story",
+      "name": "Story",
+      "description": "The bundled story content.",
+      "mods": ["murakami>=1"]
+    },
+    {
+      "id": "battle",
+      "name": "Turn Battle",
+      "description": "Turn-based combat foundation.",
+      "mods": ["turn_battle_base>=1"]
+    },
+    {
+      "id": "cards",
+      "name": "Card Game",
+      "description": "Card hands, decks and card-driven battle actions.",
+      "mods": ["card_battle>=1"]
+    },
+    {
+      "id": "interface",
+      "name": "Interface",
+      "description": "Shared GUI panels and the narrative HUD.",
+      "mods": ["interface>=1"]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 using Cthangover.Core.Battle;
 using Cthangover.Core.Battle.Actions;
+using Cthangover.Core.UI.Theming;
 using Cthangover.Core.Utils;
 using Cthangover.TurnBattle;
 using Cthangover.Core.Characters;
@@ -167,12 +168,7 @@ namespace Cthangover.CardBattle.Actions
 
                         if (result.Result)
                         {
-                            if (result.Target.Damage > 0)
-                                ShowDamageBehaviour.SpawnDamage(result.Target.Damage, TargetControl, TargetControl.GlobalPosition);
-
-                            var defenceLost = -result.Target.Defence;
-                            if (defenceLost > 0)
-                                ShowDamageBehaviour.SpawnDefence(defenceLost, TargetControl, TargetControl.GlobalPosition);
+                            LogAttackResult(result);
                         }
                         else
                         {
@@ -276,6 +272,52 @@ namespace Cthangover.CardBattle.Actions
                 TargetControl.Scale = targetOriginalScale;
             }
         }
+
+        /// <summary>
+        /// Mirrors the resolved action onto the UI: floating damage / absorbed
+        /// shield numbers, a colour pulse on the target card and journal rows, so
+        /// an AI attack reads the same as the player's own attack. Stun actions
+        /// (a "Turn" above 1) flash the electric zap instead of damage numbers.
+        /// </summary>
+        private void LogAttackResult(ChangedAttributes result)
+        {
+            var targetName = TranslationServer.Translate(Target.Card.Name).ToString();
+            var isStun = Action != null && Action.GetInt("Turn", 0) > 1;
+
+            var defenceLost = -result.Target.Defence;
+            if (defenceLost > 0)
+            {
+                ShowDamageBehaviour.SpawnDefence(defenceLost, TargetControl, TargetControl.GlobalPosition);
+                BattleLogHub.Log(
+                    string.Format(Translate("battle/log_shield_absorb"), targetName, defenceLost),
+                    UI.BattleLogKind.Shield);
+            }
+
+            if (isStun)
+            {
+                Target.PlayZap();
+                BattleLogHub.Log(
+                    string.Format(Translate("battle/log_stun"), targetName, Action.GetInt("Turn", 0)),
+                    UI.BattleLogKind.Status);
+                return;
+            }
+
+            if (result.Target.Damage > 0)
+            {
+                ShowDamageBehaviour.SpawnDamage(result.Target.Damage, TargetControl, TargetControl.GlobalPosition);
+                Target.Flash(UiTokens.DangerText);
+                BattleLogHub.Log(
+                    string.Format(Translate("battle/log_damage"),
+                        Translate(Action.Name),
+                        TranslationServer.Translate(Source.Card.Name).ToString(),
+                        targetName,
+                        result.Target.Damage),
+                    UI.BattleLogKind.Damage);
+            }
+        }
+
+        private static string Translate(string key)
+            => TranslationServer.Translate(key).ToString();
 
         private void InitializeMovementPattern()
         {

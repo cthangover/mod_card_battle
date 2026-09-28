@@ -28,9 +28,10 @@ namespace Cthangover.CardBattle.UI
 
             Size = CustomMinimumSize;
 
-            _button.Text = TranslationServer.Translate("battle/end_turn");
-            _button.Pressed += () => OnPressed?.Invoke();
+            _button.Pressed += RaisePressed;
         }
+
+        private void RaisePressed() => OnPressed?.Invoke();
 
         /// <summary>
         /// Shows or hides the underlying <see cref="Button"/> control.
