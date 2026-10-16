@@ -4,6 +4,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -50,6 +52,7 @@ namespace Cthangover.CardBattle.UI
         /// <inheritdoc />
         public Control GetControlNode() => this;
 
+        /// <summary>Builds the action card visuals: artwork, name label and point cost chip from the bound ActionCharacter.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

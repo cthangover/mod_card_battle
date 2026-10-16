@@ -42,9 +42,10 @@ namespace Cthangover.CardBattle.Actions
         public PhysicsDefenceAction(CharacterCardNode source, CharacterCardNode target, ActionCharacter action, float speed = 1)
             : base(source, target, action, speed) { }
 
+        /// <summary>Resets the phase clock and captures the target's original scale and colour.</summary>
         protected override void DoInternalStart()
         {
-            Timestamp = Time.GetTicksUsec() / 1_000_000.0;
+            Timestamp = Godot.Time.GetTicksUsec() / 1_000_000.0;
             effectApplied = false;
             phase = ActionPhase.Prepare;
             targetOriginalScale = TargetControl.Scale;
@@ -53,7 +54,7 @@ namespace Cthangover.CardBattle.Actions
 
         private float GetPhaseProgress()
         {
-            float elapsed = (float)(Time.GetTicksUsec() / 1_000_000.0 - Timestamp) * Speed * (float)Engine.TimeScale;
+            float elapsed = (float)(Godot.Time.GetTicksUsec() / 1_000_000.0 - Timestamp) * Speed * (float)Godot.Engine.TimeScale;
             float duration = GetCurrentPhaseDuration();
             return Mathf.Clamp(elapsed / duration, 0f, 1f);
         }
@@ -73,9 +74,10 @@ namespace Cthangover.CardBattle.Actions
 
         private void ResetTimestamp()
         {
-            Timestamp = Time.GetTicksUsec() / 1_000_000.0;
+            Timestamp = Godot.Time.GetTicksUsec() / 1_000_000.0;
         }
 
+        /// <summary>Advances the guard animation: approach, impact, defence stat application, return and recover.</summary>
         protected override bool DoInternalAction()
         {
             float progress = GetPhaseProgress();
@@ -196,6 +198,7 @@ namespace Cthangover.CardBattle.Actions
             return false;
         }
 
+        /// <summary>Restores the target's captured visual state after the defence animation.</summary>
         protected override void DoInternalEnd()
         {
             if (SourceControl != null)

@@ -6,6 +6,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.View;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -48,6 +50,7 @@ namespace Cthangover.CardBattle.UI
         /// </summary>
         public event System.Action<CharacterCardNode> OnCardDead;
 
+        /// <summary>Builds the card grid container rows for one battle side.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

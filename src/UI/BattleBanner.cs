@@ -2,6 +2,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -22,6 +24,7 @@ namespace Cthangover.CardBattle.UI
         private Label _label;
         private Tween _tween;
 
+        /// <summary>Builds the centre-screen turn/victory banner label.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);
