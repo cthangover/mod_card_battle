@@ -15,16 +15,27 @@ namespace Cthangover.CardBattle.Actions
     /// </summary>
     public abstract class AbstractBattleAction : IBattleAction
     {
+        /// <summary>Seconds timestamp of the current phase start (used for phase progress); -1 before the first phase.</summary>
         protected double Timestamp { get; set; } = -1;
+        /// <summary>Playback speed multiplier applied to all phase durations.</summary>
         protected float Speed { get; set; }
+        /// <summary>The action definition whose stats drive the animation.</summary>
         protected ActionCharacter Action { get; set; }
+        /// <summary>Acting card node.</summary>
         protected CharacterCardNode Source { get; set; }
+        /// <summary>Receiving card node.</summary>
         protected CharacterCardNode Target { get; set; }
+        /// <summary>Visual control of the source card (null-safe abort when freed mid-animation).</summary>
         protected Control SourceControl { get; set; }
+        /// <summary>Source position captured in <see cref="DoStart"/> for restoration in <see cref="DoEnd"/>.</summary>
         protected Vector2 SourcePos { get; set; }
+        /// <summary>Source rotation captured in <see cref="DoStart"/>.</summary>
         protected float SourceRot { get; set; }
+        /// <summary>Visual control of the target card.</summary>
         protected Control TargetControl { get; set; }
+        /// <summary>Target position captured in <see cref="DoStart"/>.</summary>
         protected Vector2 TargetPos { get; set; }
+        /// <summary>Target rotation captured in <see cref="DoStart"/>.</summary>
         protected float TargetRot { get; set; }
 
         /// <summary>
@@ -41,8 +52,11 @@ namespace Cthangover.CardBattle.Actions
             return DoInternalAction();
         }
 
+        /// <summary>Frame tick of the animation; implementors advance phases and return true when finished.</summary>
         protected abstract bool DoInternalAction();
+        /// <summary>Phase setup called once before the first <see cref="DoInternalAction"/> tick.</summary>
         protected abstract void DoInternalStart();
+        /// <summary>Cleanup called once after completion — restore captured positions/rotations here.</summary>
         protected abstract void DoInternalEnd();
 
         protected AbstractBattleAction(CharacterCardNode source, CharacterCardNode target, ActionCharacter action, float speed = 1)

@@ -2,6 +2,7 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -19,6 +20,7 @@ namespace Cthangover.CardBattle.UI
         /// </summary>
         public event System.Action OnPressed;
 
+        /// <summary>Builds the end-turn button and binds its pressed event.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

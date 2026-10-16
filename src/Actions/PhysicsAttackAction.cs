@@ -69,9 +69,10 @@ namespace Cthangover.CardBattle.Actions
             movementPattern = (MovementPattern)GD.RandRange(0, 5);
         }
 
+        /// <summary>Resets the phase clock and starts the attack sequence from the Wait phase.</summary>
         protected override void DoInternalStart()
         {
-            Timestamp = Time.GetTicksUsec() / 1_000_000.0;
+            Timestamp = Godot.Time.GetTicksUsec() / 1_000_000.0;
             damageApplied = false;
             stunEffectSpawned = false;
             phase = ActionPhase.Wait;
@@ -80,7 +81,7 @@ namespace Cthangover.CardBattle.Actions
 
         private float GetPhaseProgress()
         {
-            float elapsed = (float)(Time.GetTicksUsec() / 1_000_000.0 - Timestamp) * Speed * (float)Engine.TimeScale;
+            float elapsed = (float)(Godot.Time.GetTicksUsec() / 1_000_000.0 - Timestamp) * Speed * (float)Godot.Engine.TimeScale;
             float duration = GetCurrentPhaseDuration();
             return Mathf.Clamp(elapsed / duration, 0f, 1f);
         }
@@ -102,9 +103,10 @@ namespace Cthangover.CardBattle.Actions
 
         private void ResetTimestamp()
         {
-            Timestamp = Time.GetTicksUsec() / 1_000_000.0;
+            Timestamp = Godot.Time.GetTicksUsec() / 1_000_000.0;
         }
 
+        /// <summary>Advances the multi-phase attack: dash in, impact, damage/stun application, return and recover.</summary>
         protected override bool DoInternalAction()
         {
             float progress = GetPhaseProgress();
@@ -258,6 +260,7 @@ namespace Cthangover.CardBattle.Actions
             return false;
         }
 
+        /// <summary>Restores the target's captured position, scale and rotation after the attack animation.</summary>
         protected override void DoInternalEnd()
         {
             if (SourceControl != null)

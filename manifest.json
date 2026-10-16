@@ -3,7 +3,7 @@
   "name": "CardBattle",
   "version": "1.0.0",
   "author": "ct",
-  "description": "Card battle mechanics",
+  "description": "Card battle implementation on top of turn_battle_base: an action-card hand with attack/defence values, character cards, battle HUD, log and banners, end-turn flow and its own battle sounds.",
   "category": "gameplay",
   "sources": [
     "src/**/*.cs"

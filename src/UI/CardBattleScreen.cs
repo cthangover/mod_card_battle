@@ -2,6 +2,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.View;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -48,6 +50,7 @@ namespace Cthangover.CardBattle.UI
         /// </summary>
         public CanvasLayer DragLayer { get; private set; }
 
+        /// <summary>Assembles the full card-battle screen: panels, HUD, banner, log and drag layer.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

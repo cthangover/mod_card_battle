@@ -2,6 +2,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -28,6 +30,7 @@ namespace Cthangover.CardBattle.UI
         /// <summary>Container that receives action cards; owned by the input controller.</summary>
         public Control Body => _grid;
 
+        /// <summary>Builds the bottom action bar shown while a card is selected.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

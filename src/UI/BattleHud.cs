@@ -2,6 +2,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -19,6 +21,7 @@ namespace Cthangover.CardBattle.UI
         private Label _roundValue;
         private Label _enemiesValue;
 
+        /// <summary>Builds the battle HUD frame: turn indicator, speed control and log button.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Cthangover.Core.Cards;
 using Cthangover.Core.Audio;
 using Cthangover.Core.Scenes;
@@ -9,6 +9,7 @@ using Cthangover.Core.UI.CharacterPanel;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -70,6 +71,7 @@ namespace Cthangover.CardBattle.UI
             _panels = new[] { screen.PlayerPanel, screen.EnemyPanel };
         }
 
+        /// <summary>Routes mouse input into card selection and target picking for the player turn.</summary>
         protected override void OnInput(InputEvent @event)
         {
             if (Cthangover.Core.Battle.BattleSceneContext.Instance != null &&
@@ -274,7 +276,7 @@ namespace Cthangover.CardBattle.UI
             if (source != _selectedCharacter && _selectedCharacter != null)
                 _selectedCharacter.Unselect();
 
-            var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
+            var audioService = SceneContextNode.Instance?.GetSceneRoot<Node>("AudioService") as IAudioService;
             audioService?.PlaySound("battle/card_show_actions", SoundType.CardEffect);
 
             _selectedCharacter = source;
@@ -303,7 +305,7 @@ namespace Cthangover.CardBattle.UI
                 _currentActionCard.Unselect();
 
             _dragValid = true;
-            var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
+            var audioService = SceneContextNode.Instance?.GetSceneRoot<Node>("AudioService") as IAudioService;
             audioService?.PlaySound("battle/card_pick", 4, SoundType.CardEffect);
 
             _currentActionCard = source;
@@ -382,7 +384,7 @@ namespace Cthangover.CardBattle.UI
                         _originalActionCardParent = null;
                     }
 
-                    var audioService = SceneContextNode.Instance?.GetSceneRoot<AudioService>("AudioService");
+                    var audioService = SceneContextNode.Instance?.GetSceneRoot<Node>("AudioService") as IAudioService;
                     audioService?.PlaySound("battle/card_drop", 4, SoundType.CardEffect);
 
                     DoActionToTarget();

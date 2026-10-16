@@ -2,6 +2,8 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
@@ -25,6 +27,7 @@ namespace Cthangover.CardBattle.UI
         private ScrollContainer _scroll;
         private VBoxContainer _rows;
 
+        /// <summary>Builds the scrollable battle log with coloured entries per <see cref="BattleLogKind"/>.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);
@@ -51,6 +54,7 @@ namespace Cthangover.CardBattle.UI
             BattleLogHub.Entry += Append;
         }
 
+        /// <summary>Unsubscribes from the shared <see cref="BattleLogHub"/> so the freed panel stops receiving entries.</summary>
         protected override void Destruct()
         {
             BattleLogHub.Entry -= Append;

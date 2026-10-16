@@ -6,13 +6,18 @@ using Cthangover.Core.UI;
 using Cthangover.Core.UI.Theming;
 using Godot;
 
+using Cthangover.Mods.Interface.Base.Lists;
+using Cthangover.Mods.Interface.Theming;
 namespace Cthangover.CardBattle.UI
 {
     /// <summary>
     /// Party or enemy card on the battle field, rebuilt from the interface
     /// mockup (mockups/card_battle): full-bleed portrait, team-coloured frame,
-    /// bottom info block with the name, four stat chips (HP/ЗАЩ/АТК/ОД) and an
-    /// HP bar, plus stun badge, zap flash and selection frame in the upper right.
+    /// bottom info block with the name, four stat chips (HP/ЗАЩ/АТК/ОД) and a
+    /// layered health bar (<see cref="UiKit.StyleShieldedHealthBar"/>:
+    /// track → health fill → blue defence segment drawn past the health edge
+    /// while <see cref="CharacterAttributes.Defence"/> absorbs damage), plus
+    /// stun badge, zap flash and selection frame in the upper right.
     /// The node tree lives in <c>scenes/character_card.tscn</c>; this class
     /// fetches the nodes once, dresses them with <see cref="UiTokens"/> styles and
     /// exposes the battle-facing API: <see cref="UpdateInfo"/> is the single
@@ -34,6 +39,7 @@ namespace Cthangover.CardBattle.UI
         private TextureRect _art;
         private Panel _teamFrame;
         private Label _nameLabel;
+        private ProgressBar _shieldBar;
         private ProgressBar _hpBar;
         private Label _hpValue;
         private Label _defValue;
@@ -87,6 +93,7 @@ namespace Cthangover.CardBattle.UI
         /// <inheritdoc />
         public Control GetControlNode() => this;
 
+        /// <summary>Builds the character card: portrait, art frame, selection overlay and stat labels.</summary>
         protected override void Construct()
         {
             CthangoverTheme.Apply(this);
@@ -94,7 +101,8 @@ namespace Cthangover.CardBattle.UI
             _art = GetNode<TextureRect>("Art");
             _teamFrame = GetNode<Panel>("TeamFrame");
             _nameLabel = GetNode<Label>("Info/Column/NameLabel");
-            _hpBar = GetNode<ProgressBar>("Info/Column/HpBar");
+            _shieldBar = GetNode<ProgressBar>("Info/Column/HpBarStack/ShieldBar");
+            _hpBar = GetNode<ProgressBar>("Info/Column/HpBarStack/HpBar");
             _hpValue = GetNode<Label>("Info/Column/Stats/HpChip/Row/Value");
             _defValue = GetNode<Label>("Info/Column/Stats/DefChip/Row/Value");
             _atkValue = GetNode<Label>("Info/Column/Stats/AtkChip/Row/Value");
@@ -165,8 +173,9 @@ namespace Cthangover.CardBattle.UI
         }
 
         /// <summary>
-        /// Refreshes every mutable value from the character model: name, HP
-        /// number and bar (turning red below 40%), defence, attack, action
+        /// Refreshes every mutable value from the character model: name, layered
+        /// HP/defence bar and HP number (health turning red below 40%, blue
+        /// defence segment drawn past the health edge), defence, attack, action
         /// points and the stun badge with its remaining turns. Called after each
         /// action, on turn start, and by the panel after re-gridding.
         /// </summary>
@@ -180,8 +189,12 @@ namespace Cthangover.CardBattle.UI
             var health = Card.Attributes.Health;
             var percent = Mathf.Clamp(health.Percent, 0f, 1f);
             _hpBar.Value = percent * 100f;
-            _hpBar.AddThemeStyleboxOverride("background", UiKit.Frame(UiTokens.RadiusSm, UiTokens.LineDisabled));
             _hpBar.AddThemeStyleboxOverride("fill", UiKit.Frame(UiTokens.RadiusSm, percent < 0.4f ? UiTokens.HpLow : UiTokens.HpOk));
+
+            // Blue defence segment on top of the health fill; collapses onto
+            // the health edge when the shield is gone.
+            UiKit.UpdateShieldedHealthBar(
+                _shieldBar, percent, Card.Attributes.Defence.Value, health.BaseValue);
 
             _hpValue.Text = health.Value + "/" + health.BaseValue;
             _defValue.Text = Card.Attributes.Defence.Value.ToString();
@@ -268,6 +281,10 @@ namespace Cthangover.CardBattle.UI
             GetNode<PanelContainer>("Info").AddThemeStyleboxOverride("panel", infoStyle);
 
             _nameLabel.AddThemeColorOverride("font_color", UiTokens.InkBright);
+
+            // Layered pie: the shield bar owns the track and the blue defence
+            // fill; the health bar paints only its fill on top of it.
+            UiKit.StyleShieldedHealthBar(_shieldBar, _hpBar);
 
             StyleChip("Info/Column/Stats/HpChip", UiTokens.HpText);
             StyleChip("Info/Column/Stats/DefChip", UiTokens.Ink);
