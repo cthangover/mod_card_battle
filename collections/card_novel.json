@@ -5,6 +5,8 @@
   "author": "ct",
   "version": "1.0.0",
   "description": "A visual novel with turn-based battles resolved as a card game: story core, battle engine, card layer and the novel interface.",
+  "entry": { "scene": "start_scene" },
+  "settings": { "battle.core": "card_battle" },
   "locale": [
     {
       "lang": "ru",
@@ -21,13 +23,16 @@
       "locale": [
         { "lang": "ru", "name": "Ядро новеллы", "description": "Сцены, сценарии, диалоги и движок истории." }
       ],
-      "mods": ["visual_novel_core>=1"]
+      "mods": ["visual_novel_core>=1", "starter_party>=1"]
     },
     {
       "id": "story",
       "name": "Story",
       "role": "content",
       "description": "The bundled story content.",
+      "locale": [
+        { "lang": "ru", "name": "Сюжет", "description": "Встроенный сюжетный контент." }
+      ],
       "mods": ["murakami>=1"]
     },
     {
@@ -35,6 +40,9 @@
       "name": "Turn Battle",
       "role": "battle",
       "description": "Turn-based combat foundation.",
+      "locale": [
+        { "lang": "ru", "name": "Пошаговый бой", "description": "Основа пошаговых боёв." }
+      ],
       "mods": ["turn_battle_base>=1"]
     },
     {
@@ -42,6 +50,9 @@
       "name": "Card Game",
       "role": "cards",
       "description": "Card hands, decks and card-driven battle actions.",
+      "locale": [
+        { "lang": "ru", "name": "Карточная игра", "description": "Руки, колоды и боевые действия на картах." }
+      ],
       "mods": ["card_battle>=1"]
     },
     {
@@ -49,6 +60,9 @@
       "name": "Interface",
       "role": "ui",
       "description": "Shared GUI panels and the narrative HUD.",
+      "locale": [
+        { "lang": "ru", "name": "Интерфейс", "description": "Общие панели интерфейса и HUD повествования." }
+      ],
       "mods": ["interface>=1"]
     }
   ]
