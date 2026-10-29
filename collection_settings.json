@@ -1,0 +1,9 @@
+{
+  "options": [
+    {
+      "key": "battle.core",
+      "value": "card_battle",
+      "name": "collection_settings/cards"
+    }
+  ]
+}

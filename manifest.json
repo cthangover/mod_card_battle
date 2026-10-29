@@ -1,9 +1,9 @@
 {
   "id": "card_battle",
-  "name": "CardBattle",
+  "name": "Card Battle",
   "version": "1.0.0",
   "author": "ct",
-  "description": "Card battle implementation on top of turn_battle_base: an action-card hand with attack/defence values, character cards, battle HUD, log and banners, end-turn flow and its own battle sounds.",
+  "description": "A battle system with cards: pick a character card and drag its action cards onto targets. Built on Turn Battle Base; the battle of Cthangover.",
   "category": "gameplay",
   "sources": [
     "src/**/*.cs"

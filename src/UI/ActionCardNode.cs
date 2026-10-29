@@ -119,7 +119,8 @@ namespace Cthangover.CardBattle.UI
         /// <summary>
         /// Builds the hint printed in the actions panel when the card is
         /// hovered: the expected effect computed from the source character's
-        /// stats ("Урон 5 (АТК 5 × 1.0) · расход 1 ОД").
+        /// stats ("Урон 5 (АТК 5 × 1.0) · расход 1 ОД"); an enemy action without an
+        /// <c>Attack</c> multiplier (a formula skill) shows its own description instead.
         /// </summary>
         public string DescribeFrom(Character source)
         {
@@ -132,6 +133,12 @@ namespace Cthangover.CardBattle.UI
 
             if (Card.Type == ActionCharacterType.ToEnemy)
             {
+                if (Card.GetFloat("Attack", 0f) <= 0f)
+                {
+                    var description = ActionCharacterUi.StripMarkup(ActionCharacterUi.Translate(Card.Description));
+                    if (!string.IsNullOrEmpty(description))
+                        return description;
+                }
                 var multiplier = Card.GetFloat("Attack", 1f);
                 var damage = Mathf.RoundToInt(multiplier * source.Attributes.Attack.Value);
                 return string.Format(
