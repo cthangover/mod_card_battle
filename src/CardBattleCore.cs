@@ -170,7 +170,7 @@ namespace Cthangover.CardBattle
             }
 
             _screen.Hud.SetEnemiesAlive(CountAlive(_enemyPanel));
-            BattleLogHub.Log(string.Format(Translate("battle/log_dead"), card.Card.Name), BattleLogKind.Dead);
+            BattleLogHub.Log(string.Format(Translate("battle/log_dead"), Translate(card.Card.Name)), BattleLogKind.Dead);
         }
 
         private void StartPlayerTurn()
@@ -275,7 +275,7 @@ namespace Cthangover.CardBattle
                     card.UpdateInfo();
                     card.PlayZap();
                     BattleLogHub.Log(
-                        string.Format(Translate("battle/log_stun_skip"), card.Card.Name),
+                        string.Format(Translate("battle/log_stun_skip"), Translate(card.Card.Name)),
                         BattleLogKind.Status);
                     continue;
                 }
@@ -296,9 +296,9 @@ namespace Cthangover.CardBattle
                 {
                     BattleLogHub.Log(
                         string.Format(Translate("battle/log_enemy_action"),
-                            card.Card.Name,
+                            Translate(card.Card.Name),
                             ActionCharacterUi.Translate(action.Name),
-                            target.Card.Name),
+                            Translate(target.Card.Name)),
                         BattleLogKind.Info);
                 }
 
