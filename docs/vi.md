@@ -27,9 +27,9 @@ Power strike của anh hùng gây 21 sát thương: phần đầu là 2 điểm 
 
 Card Battle xử lý những loại hành động cơ bản giống hệt FF Battle:
 
-- `Attack=1.5` — sát thương của đòn đánh nhân với con số; lớp khiên của mục tiêu hấp thụ trước;
-- `Defence=4` — đặt lớp khiên lên đồng đội;
-- `Turn=2` — khiến mục tiêu choáng đúng số lượt đó.
+- `Attack>=0.1.0` — sát thương của đòn đánh nhân với con số; lớp khiên của mục tiêu hấp thụ trước;
+- `Defence>=0.1.0` — đặt lớp khiên lên đồng đội;
+- `Turn>=0.1.0` — khiến mục tiêu choáng đúng số lượt đó.
 
 Kỹ năng viết bằng công thức (giá trị `Formula=`, chẳng hạn Power strike của Classic RPG Rules) cũng hoạt động ở đây thông qua Battle Formulas.
 

@@ -27,9 +27,9 @@ RPG Plus の戦士対狼。英雄をクリックし、Power strike にカーソ�
 
 Card Battle は、FF Battle と同じ基本種類のアクションを実行します：
 
-- `Attack=1.5`——攻撃ダメージに数値を掛けたもの。まず対象のシールドが受け止めます；
-- `Defence=4`——味方にシールドを付与；
-- `Turn=2`——そのターン数だけスタン。
+- `Attack>=0.1.0`——攻撃ダメージに数値を掛けたもの。まず対象のシールドが受け止めます；
+- `Defence>=0.1.0`——味方にシールドを付与；
+- `Turn>=0.1.0`——そのターン数だけスタン。
 
 数式で書かれたスキル（`Formula=` 値。Classic RPG Rules の Power strike など）も、Battle Formulas を通してここで機能します。
 

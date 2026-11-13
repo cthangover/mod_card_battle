@@ -27,9 +27,9 @@ El Power strike del héroe sacó 21: los 2 primeros los absorbió el escudo del 
 
 Card Battle ejecuta los mismos tipos básicos de acciones que FF Battle:
 
-- `Attack=1.5` — el daño del ataque multiplicado por el número; lo absorbe primero el escudo del objetivo;
-- `Defence=4` — un escudo sobre un aliado;
-- `Turn=2` — aturdimiento durante ese número de turnos.
+- `Attack>=0.1.0` — el daño del ataque multiplicado por el número; lo absorbe primero el escudo del objetivo;
+- `Defence>=0.1.0` — un escudo sobre un aliado;
+- `Turn>=0.1.0` — aturdimiento durante ese número de turnos.
 
 Las habilidades escritas como fórmulas (valores `Formula=`, como el Power strike de Classic RPG Rules) también funcionan aquí, mediante Battle Formulas.
 
