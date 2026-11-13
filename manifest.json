@@ -1,12 +1,12 @@
 {
   "id": "card_battle",
   "name": "Card Battle",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "author": "ct",
   "description": "A battle system with cards: pick a character card and drag its action cards onto targets. Built on Turn Battle Base; the battle of Cthangover.",
   "category": "gameplay",
   "sources": [
     "src/**/*.cs"
   ],
-  "depends": [ "ui_base>=1", "turn_battle_base>=1" ]
+  "depends": [ "ui_base>=0.1.0", "turn_battle_base>=0.1.0" ]
 }

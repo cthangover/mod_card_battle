@@ -27,9 +27,9 @@ The hero's Power strike did 21: the wolf's shield of 2 took the first part and i
 
 Card Battle carries out the same basic kinds of actions as FF Battle:
 
-- `Attack=1.5` — damage of the attack times the number, absorbed first by the target's shield;
-- `Defence=4` — a shield on an ally;
-- `Turn=2` — stun for that many turns.
+- `Attack>=0.1.0` — damage of the attack times the number, absorbed first by the target's shield;
+- `Defence>=0.1.0` — a shield on an ally;
+- `Turn>=0.1.0` — stun for that many turns.
 
 Skills written as formulas (`Formula=` values, such as Classic RPG Rules' Power strike) work here too through Battle Formulas.
 

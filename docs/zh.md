@@ -27,9 +27,9 @@ RPG Plus 的战士对阵狼：点击英雄后，光标悬停在 Power strike 上
 
 Card Battle 执行与 FF Battle 相同的几种基础动作：
 
-- `Attack=1.5`——攻击伤害乘以该数值；优先被目标的护盾吸收；
-- `Defence=4`——给队友加护盾；
-- `Turn=2`——眩晕相应的回合数。
+- `Attack>=0.1.0`——攻击伤害乘以该数值；优先被目标的护盾吸收；
+- `Defence>=0.1.0`——给队友加护盾；
+- `Turn>=0.1.0`——眩晕相应的回合数。
 
 以公式书写的技能（`Formula=` 值，比如 Classic RPG Rules 的 Power strike）经由 Battle Formulas 在这里同样有效。
 
