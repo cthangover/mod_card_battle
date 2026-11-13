@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "author": "ct",
   "description": "A battle system with cards: pick a character card and drag its action cards onto targets. Built on Turn Battle Base; the battle of Cthangover.",
-  "category": "gameplay",
+  "categories": ["gameplay"],
   "sources": [
     "src/**/*.cs"
   ],
